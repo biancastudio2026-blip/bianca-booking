@@ -1,0 +1,265 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import { initializeApp } from 'firebase/app';
+import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
+import { getFirestore, collection, doc, onSnapshot, setDoc, addDoc, query, deleteDoc, updateDoc } from 'firebase/firestore';
+import { 
+  ChevronLeft, 
+  ChevronRight, 
+  Settings, 
+  User, 
+  Clock, 
+  CheckCircle2, 
+  Calendar as CalendarIcon,
+  Plus,
+  Trash2,
+  X,
+  MapPin,
+  Sparkles,
+  Check,
+  Circle,
+  AlertCircle,
+  BellRing,
+  MessageSquare,
+  ChevronDown,
+  Lock,
+  Unlock,
+  Eye,
+  Menu
+} from 'lucide-react';
+
+// --- Firebase 初始化 ---
+// 注意：在實際部署時，請確保環境變數已正確配置
+const firebaseConfig = JSON.parse(__firebase_config);
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'bianca-studio-production';
+
+// --- 常數設定 ---
+const ADMIN_PASSWORD = "8888"; // 管理員後台密碼
+const DAYS = ['日', '一', '二', '三', '四', '五', '六'];
+const MONTHS = ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月'];
+const LOCATIONS = ['淡水', '竹北', '新竹到府'];
+const DEFAULT_SLOTS = ["10:00", "13:00", "15:30", "19:00"];
+
+const SERVICES = [
+  { id: 'lash', name: '睫毛管理（上睫毛）', hasAddons: true },
+  { id: 'brow', name: '野生眉雕塑', hasAddons: false }
+];
+const LASH_ADDONS = [
+  { id: 'lower', name: '下睫毛' },
+  { id: 'dark', name: '濃黑保養' }
+];
+
+const App = () => {
+  // --- 狀態管理 ---
+  const [user, setUser] = useState(null);
+  const [view, setView] = useState('customer'); // 'customer' | 'admin'
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [availability, setAvailability] = useState({});
+  const [bookings, setBookings] = useState([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  // 預約表單資料
+  const [bookingForm, setBookingForm] = useState({
+    name: '',
+    phone: '',
+    location: '',
+    services: [], 
+    addons: [],
+    slot: '',
+    note: ''
+  });
+
+  // --- 認證與資料監聽 ---
+  useEffect(() => {
+    const initAuth = async () => {
+      try {
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+          await signInWithCustomToken(auth, __initial_auth_token);
+        } else {
+          await signInAnonymously(auth);
+        }
+      } catch (e) { console.error("Auth Error", e); }
+    };
+    initAuth();
+    return onAuthStateChanged(auth, setUser);
+  }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    
+    // 監聽可用性設定
+    const unsubAvail = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'availability'), (snap) => {
+      const data = {};
+      snap.forEach(d => data[d.id] = d.data());
+      setAvailability(data);
+      setLoading(false);
+    });
+
+    // 監聽預約紀錄
+    const unsubBookings = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'bookings'), (snap) => {
+      const data = [];
+      snap.forEach(d => data.push({ id: d.id, ...d.data() }));
+      setBookings(data);
+    });
+
+    return () => { unsubAvail(); unsubBookings(); };
+  }, [user]);
+
+  // --- 日期邏輯 ---
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  
+  const calendarDays = useMemo(() => {
+    const arr = Array(firstDay).fill(null);
+    for(let i=1; i<=daysInMonth; i++) arr.push(new Date(year, month, i));
+    return arr;
+  }, [year, month, firstDay, daysInMonth]);
+
+  const formatDate = (date) => {
+    if(!date) return '';
+    return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+  };
+
+  // --- 輔助函式 ---
+  const getOccupiedSlots = (dateStr) => bookings.filter(b => b.date === dateStr).map(b => b.slot);
+  
+  const getTomorrowBookings = () => {
+    const tmr = new Date();
+    tmr.setDate(tmr.getDate() + 1);
+    const tmrStr = formatDate(tmr);
+    return bookings.filter(b => b.date === tmrStr);
+  };
+
+  // --- 操作邏輯 ---
+  const handleAdminLogin = () => {
+    const input = prompt("請輸入管理員密碼：");
+    if (input === ADMIN_PASSWORD) {
+      setIsAdmin(true);
+      setView('admin');
+    } else {
+      alert("密碼錯誤");
+    }
+  };
+
+  const updateAvailability = async (dateStr, updates) => {
+    const ref = doc(db, 'artifacts', appId, 'public', 'data', 'availability', dateStr);
+    const current = availability[dateStr] || { isOpen: false, slots: DEFAULT_SLOTS, locations: [LOCATIONS[0]] };
+    await setDoc(ref, { ...current, ...updates });
+  };
+
+  const submitBooking = async (e) => {
+    e.preventDefault();
+    const dateStr = formatDate(selectedDate);
+    
+    // 二次檢查時段是否被搶走
+    if (getOccupiedSlots(dateStr).includes(bookingForm.slot)) {
+      alert("哎呀！該時段剛剛被別人預約了，請重選 😢");
+      return;
+    }
+
+    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'bookings'), {
+      ...bookingForm,
+      date: dateStr,
+      reminderSent: false,
+      createdAt: Date.now()
+    });
+
+    alert("預約成功！Bianca 將於預約日前一天發送提醒與您確認 ♡");
+    setIsModalOpen(false);
+    setBookingForm({ name: '', phone: '', location: '', services: [], addons: [], slot: '', note: '' });
+  };
+
+  if (loading) return (
+    <div className="flex h-screen w-full items-center justify-center bg-[#FDF8F9] text-pink-300 animate-pulse font-black text-xl tracking-widest">
+      Bianca_eye.studio Loading...
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen bg-[#FDF8F9] text-[#5A5556] font-sans pb-20 selection:bg-pink-100 selection:text-pink-500">
+      {/* 載入字體 */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        @import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;800;900&display=swap');
+        body { font-family: 'M PLUS Rounded 1c', sans-serif; }
+        .glass-panel { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); border: 2px solid white; box-shadow: 0 20px 50px -15px rgba(244, 114, 182, 0.15); }
+        .slot-btn:active { transform: scale(0.95); }
+      `}} />
+
+      {/* --- 導航列 --- */}
+      <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-pink-100/50 px-6 h-20 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-pink-100 rounded-2xl flex items-center justify-center shadow-inner text-pink-400">
+            <Eye size={20} strokeWidth={3} />
+          </div>
+          <div className="leading-none">
+            <h1 className="text-lg font-black tracking-tight">Bianca_eye.studio</h1>
+            <span className="text-[9px] font-black text-pink-400 tracking-[0.3em] uppercase">Premium Artistry</span>
+          </div>
+        </div>
+        
+        <div className="flex bg-pink-50/50 p-1.5 rounded-2xl border border-pink-100/50">
+          <button 
+            onClick={() => setView('customer')}
+            className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${view === 'customer' ? 'bg-white text-pink-500 shadow-sm' : 'text-neutral-400 hover:text-neutral-600'}`}
+          >
+            預約首頁
+          </button>
+          <button 
+            onClick={isAdmin ? () => setView('admin') : handleAdminLogin}
+            className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1 ${view === 'admin' ? 'bg-white text-pink-500 shadow-sm' : 'text-neutral-400 hover:text-neutral-600'}`}
+          >
+            {isAdmin ? <Unlock size={12} /> : <Lock size={12} />}
+            後台
+          </button>
+        </div>
+      </nav>
+
+      {/* --- 主要內容區 --- */}
+      <main className="max-w-6xl mx-auto p-6 md:p-10 grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        {/* 左側：月曆區 */}
+        <div className="lg:col-span-8">
+          <div className="glass-panel rounded-[3rem] p-6 md:p-10 min-h-[600px]">
+            {/* 月曆標頭 */}
+            <div className="flex items-center justify-between mb-10 px-2">
+              <div>
+                <span className="text-[10px] font-black text-pink-300 uppercase tracking-widest block mb-1">Select Date</span>
+                <h2 className="text-3xl font-black">{year}年 {MONTHS[month]}</h2>
+              </div>
+              <div className="flex gap-3">
+                <button onClick={() => setCurrentDate(new Date(year, month - 1, 1))} className="p-3 bg-pink-50 text-pink-400 rounded-2xl hover:bg-pink-100 transition-colors"><ChevronLeft /></button>
+                <button onClick={() => setCurrentDate(new Date(year, month + 1, 1))} className="p-3 bg-pink-50 text-pink-400 rounded-2xl hover:bg-pink-100 transition-colors"><ChevronRight /></button>
+              </div>
+            </div>
+
+            {/* 月曆網格 */}
+            <div className="grid grid-cols-7 gap-2 md:gap-4">
+              {DAYS.map(d => <div key={d} className="text-center text-xs font-black text-pink-200 py-2">{d}</div>)}
+              
+              {calendarDays.map((date, idx) => {
+                if (!date) return <div key={`e-${idx}`} />;
+                const dateStr = formatDate(date);
+                const isToday = dateStr === formatDate(new Date());
+                const data = availability[dateStr] || {};
+                const isOpen = data.isOpen;
+                const isSelected = selectedDate && formatDate(selectedDate) === dateStr;
+                
+                // 計算剩餘名額
+                const occupied = getOccupiedSlots(dateStr);
+                const totalSlots = data.slots || [];
+                const availableCount = totalSlots.filter(s => !occupied.includes(s)).length;
+                const isFull = isOpen && totalSlots.length > 0 && availableCount === 0;
+
+                return (
+                  <button
+                    key={dateStr}
+                    onClick={() => {
+                      setSelectedDate(date);
+                      if (view === 'customer' && isO

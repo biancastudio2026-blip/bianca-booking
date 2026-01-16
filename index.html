@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bianca_eye.studio 管理系統 (V30 權限同步版)</title>
+    <title>Bianca_eye.studio 管理系統 (V33 解鎖版)</title>
     <link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@300;400;700&display=swap" rel="stylesheet">
     <style>
         /* --- 核心 CSS --- */
@@ -123,7 +123,7 @@
     <div id="login-overlay">
         <div class="login-box">
             <h2>Bianca<br>Eye Studio</h2>
-            <div style="font-size: 0.9rem; margin-bottom: 15px; color: var(--dark-pink);">✨ V30 權限同步版</div>
+            <div style="font-size: 0.9rem; margin-bottom: 15px; color: var(--dark-pink);">✨ V33 解鎖版</div>
             <input type="email" id="login_email" class="login-input" placeholder="Firebase Email">
             <input type="password" id="login_pwd" class="login-input" placeholder="密碼">
             <button id="btnLogin" class="login-btn">登入系統</button>
@@ -345,8 +345,8 @@
             products: [{ name: "睫毛雨衣", price: 600 }, { name: "睫毛滋養液", price: 930 }],
             discounts: [
                 { name: "9折優惠", type: "discount", val: 0.9 }, 
-                { name: "分享折$50", type: "fixed_discount", val: 50 }, 
-                { name: "8週回訪折$100", type: "fixed_discount", val: 100 }
+                { name: "分享優惠", type: "fixed_discount", val: 50 }, 
+                { name: "回訪優惠", type: "fixed_discount", val: 100 }
             ]
         };
         let menuData = JSON.parse(localStorage.getItem('posMenu')) || defaultMenu;
@@ -384,7 +384,6 @@
                 }
                 else { 
                     btn.innerHTML = `<div style="font-weight:bold">${item.name}</div><div>$${item.price}</div>`; 
-                    // V29: Add category to cart item
                     btn.onclick = () => addToCart({ name: item.name, price: item.price, category: category }); 
                 }
                 el.appendChild(btn);
@@ -428,9 +427,7 @@
         }
 
         window.showTintModal = () => document.getElementById('tintModal').style.display='flex';
-        // V29: Tint is a Course
         window.addTint = (type, price) => { addToCart({ name: `濃黑養護-${type}`, price: price, category: '課程' }); window.closeModal('tintModal'); }
-        // V29: Topup is '儲值金'
         window.addTopUp = () => { let amt=prompt("請輸入儲值金額："); if(amt&&!isNaN(amt)) addToCart({ name:"儲值金", price:parseInt(amt), type:'topup_purchase', category: '儲值金' }); }
 
         function addToCart(item) {
@@ -474,7 +471,6 @@
             if(selectedPosClient) applyAutoDiscounts(); 
             const list = document.getElementById('cartList'); list.innerHTML = '';
             
-            // Logic V29: (Total - Fixed) * Percentage
             let grossTotal = 0;
             let fixedDeductions = 0;
             let discountMultiplier = 1;
@@ -489,7 +485,6 @@
                 }
             });
 
-            // Calc
             let taxableBase = Math.max(0, grossTotal - fixedDeductions);
             let grandTotal = Math.round(taxableBase * discountMultiplier);
             
@@ -522,14 +517,12 @@
 
         window.removeCart = (idx) => { cart.splice(idx, 1); window.updateCalculations(); };
         
-        // V29 Core: Full Sync (Daily + Client Transactions + Client Sessions)
         window.submitCheckout = () => {
             if(cart.length===0) return alert("購物車空的");
             const name = document.getElementById('pos_client_name').value || "Walk-in";
             
             let grossTotal = 0, fixedDeductions = 0, discountMultiplier = 1, topupAmt = 0;
             let courseItems = [];
-            // Category Intelligence
             let categories = new Set();
             let catSummary = {};
 
@@ -541,10 +534,10 @@
                     if(i.type==='topup_purchase') topupAmt += i.price;
                     
                     let cat = i.category || '其他';
+                    categories.add(cat);
                     if(!catSummary[cat]) catSummary[cat] = 0;
                     catSummary[cat] += i.price;
 
-                    // Filter Courses for Session Record
                     if(!i.type && !i.name.includes("雨衣") && !i.name.includes("滋養液") && !i.name.includes("儲值")) {
                         courseItems.push(i.name);
                     }
@@ -553,7 +546,6 @@
             let taxableBase = Math.max(0, grossTotal - fixedDeductions);
             let grandTotal = Math.round(taxableBase * discountMultiplier);
             
-            // Build Category String (e.g. "課程($1000) + 產品($500)")
             let categoryStr = Object.entries(catSummary).map(([k,v]) => `${k}($${v})`).join(" + ");
 
             const useBal = document.getElementById('use_balance').checked;
@@ -567,24 +559,22 @@
 
             if(topupAmt > 0 && useBal) return alert("購買儲值金時不可使用餘額扣款！");
 
-            // 1. Write POS Record (Sync to Daily Report using Local Date)
-            const localDate = getLocalYMD(); // V30 Fix
+            const localDate = getLocalYMD(); 
             
             addDoc(collection(db, "pos_records"), {
-                date: localDate, // Use fixed local date
+                date: localDate, 
                 timestamp: Date.now(), 
                 client: name, 
                 items: itemsName, 
-                category: categoryStr, // Smart Category Field
+                category: categoryStr, 
                 total: grandTotal,
                 method: useBal ? `儲值$${deduct} + ${payMethod}$${remain}` : payMethod,
                 type: topupAmt > 0 ? 'topup' : 'service'
             }).then(() => {
-                // 2. Sync to Client CRM
                 if(selectedPosClient) {
                     let newBal = balance - deduct + topupAmt;
                     const newTrans = {
-                        date: localDate, // Use fixed local date
+                        date: localDate, 
                         item: itemsName, 
                         amt: grandTotal,
                         method: useBal ? `儲值扣$${deduct}/${payMethod}` : payMethod
@@ -597,7 +587,7 @@
 
                     if(courseItems.length > 0) {
                         const newSession = {
-                            date: localDate, // Use fixed local date
+                            date: localDate,
                             items: courseItems,
                             prePhotos: [], padPhotos: [], postPhotos: []
                         };
@@ -605,9 +595,9 @@
                     }
 
                     updateDoc(doc(db, "clients", selectedPosClient.firebaseId), updates);
-                    alert(`結帳完成！\n資料已同步至:\n1. 日結報表\n2. 消費紀錄\n3. 課程紀錄\n餘額更新為：$${newBal}`);
+                    alert(`結帳完成！\n資料已同步至客戶管理 (消費/課程)。\n餘額更新為：$${newBal}`);
                 } else {
-                    alert(`結帳完成！$${grandTotal} (已寫入日結)`);
+                    alert(`結帳完成！$${grandTotal}`);
                 }
                 cart=[]; document.getElementById('pos_client_name').value=''; 
                 document.getElementById('posBalance').innerText='-';
@@ -628,23 +618,21 @@
             if(document.getElementById('receiptTime')) document.getElementById('receiptTime').innerText = `${getROCDate()} ${timeStr}`;
         }
 
-        // V30: Real-time Listener for Daily Report
+        // V33: Always show delete button unless logic says otherwise (User requested keeping the delete button visible *before* closing day, V30 logic does this by checking 'isLocked')
         window.renderDailyReport = (specificDate) => {
-            if(unsubscribeDaily) unsubscribeDaily(); // Clean up old listener
+            if(unsubscribeDaily) unsubscribeDaily(); 
             
-            const dateToQuery = specificDate || getLocalYMD(); // Use Local Date
+            const dateToQuery = specificDate || getLocalYMD(); 
             
             const displayDate = new Date(dateToQuery);
             document.getElementById('dailyDate').innerText = `${displayDate.getFullYear()-1911}/${String(displayDate.getMonth()+1).padStart(2,'0')}/${String(displayDate.getDate()).padStart(2,'0')}`;
             
-            // V30: Check lock status
             const lockQuery = query(collection(db, "daily_closings"), where("date", "==", dateToQuery));
             getDocs(lockQuery).then(snap => {
                 const isLocked = !snap.empty;
                 document.getElementById('lockMsg').style.display = isLocked ? 'inline' : 'none';
                 document.getElementById('closeDayBtn').style.display = isLocked ? 'none' : 'inline-block';
                 
-                // V31: No orderBy to prevent index error
                 const q = query(collection(db, "pos_records"), where("date", "==", dateToQuery));
                 
                 unsubscribeDaily = onSnapshot(q, (snapshot) => {
@@ -659,6 +647,7 @@
                         total += d.total;
                         const time = new Date(d.timestamp).toLocaleTimeString('zh-TW', {hour:'2-digit', minute:'2-digit'});
                         const displayItem = d.category || d.items; 
+                        // V30: Delete button visible ONLY if !isLocked
                         const delBtn = isLocked ? '' : `<button class="delete-btn" onclick="window.deleteDailyRecord('${d.id}')">🗑️</button>`;
                         tbody.innerHTML += `<tr><td>${time}</td><td>${d.client}</td><td>${displayItem}</td><td>$${d.total}</td><td>${d.method}</td><td>${delBtn}</td></tr>`;
                     });
@@ -674,21 +663,16 @@
                 if(!snap.empty) {
                     const target = snap.docs[0].data();
                     
-                    // 2. Find Client and Revert
                     const client = clients.find(c => c.name === target.client);
                     if(client) {
                         let newBal = client.balance || 0;
                         let isModified = false;
                         
-                        // Revert Balance
                         if(target.method.includes("儲值扣")) {
                             const match = target.method.match(/儲值扣\$(\d+)/);
                             if(match) { newBal += parseInt(match[1]); isModified = true; }
                         }
                         if(target.type === 'topup') {
-                            // Simple logic: if topup, assume total amt is deducted
-                            // In real mixed cart this is complex, but V30 assumes standard flow.
-                            // We scan items for topup value
                              const itemParts = target.items.split('+');
                              itemParts.forEach(p => {
                                  if(p.includes('儲值金') && p.includes('$')) {
@@ -698,12 +682,10 @@
                              });
                         }
                         
-                        // Delete Transaction
                         let newTrans = client.transactions ? [...client.transactions] : [];
                         const transIdx = newTrans.findIndex(t => t.date === target.date && t.item === target.items && t.amt === target.total);
                         if(transIdx > -1) { newTrans.splice(transIdx, 1); isModified = true; }
                         
-                        // Delete Session (Simple Date Match)
                         let newSessions = client.sessions ? [...client.sessions] : [];
                         const sessIdx = newSessions.findIndex(s => s.date.startsWith(target.date)); 
                         if(sessIdx > -1) { newSessions.splice(sessIdx, 1); isModified = true; }

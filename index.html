@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Bianca_eye.studio 預約系統</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    body { font-family: "Microsoft JhengHei", sans-serif; background-color: #fdfbf7; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .modal-overlay { background-color: rgba(0, 0, 0, 0.5); }
+    .slide-up { animation: slideUp 0.3s ease-out; }
+    @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel" data-type="module">
+    // --- import 區塊 ---
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getAuth, signInAnonymously, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getFirestore, collection, doc, setDoc, getDoc, updateDoc, arrayUnion, arrayRemove, onSnapshot, runTransaction, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    // --- Firebase 設定 ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyDPCo-OifrWYwQ5B94sdxTvqOSy0Fasjr8",
+      authDomain: "biancatemp-2e89e.firebaseapp.com",
+      projectId: "biancatemp-2e89e",
+      storageBucket: "biancatemp-2e89e.firebasestorage.app",
+      messagingSenderId: "272754208042",
+      appId: "1:272754208042:web:7ef2864c3bd7dacab8c253",
+      measurementId: "G-6CTBV02QR4"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const SCHEDULE_COLLECTION = 'bianca_schedule_data';
+    const CLIENTS_COLLECTION = 'bianca_clients_data';
+
+    // --- 圖示 ---
+    const Icons = {
+      Menu: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>,
+      X: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 18 18"/></svg>,
+      Instagram: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>,
+      MessageCircle: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z"/></svg>,
+      ChevronDown: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>,
+      ChevronUp: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m18 15-6-6-6 6"/></svg>,
+      Star: ({fill, ...p}) => <svg {...p} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill={fill || "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
+      Heart: ({fill, ...p}) => <svg {...p} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill={fill || "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>,
+      Sparkles: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M9 5H5"/><path d="M3 7.5v-1"/></svg>,
+      Calendar: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>,
+      MapPin: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>,
+      Clock: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+      Trash2: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>,
+      Plus: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>,
+      Lock: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>,
+      User: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
+      Ban: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/></svg>,
+      Search: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>,
+      Send: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>,
+      UserPlus: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" x2="20" y1="8" y2="14"/><line x1="23" x2="17" y1="11" y2="11"/></svg>,
+      Settings: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+    };
+
+    const DoodleEye = ({ className }) => (<svg viewBox="0 0 100 60" className={className} fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M10,40 Q50,10 90,40" /><path d="M20,28 L15,15" /><path d="M35,22 L32,8" /><path d="M50,20 L50,5" /><path d="M65,22 L68,8" /><path d="M80,28 L85,15" /></svg>);
+    const SquiggleLine = ({ className }) => (<svg viewBox="0 0 100 20" className={className} fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M5,10 Q25,20 50,10 T95,10" /></svg>);
+    const HandDrawnBorder = ({ children, className = "" }) => (<div className={`border-2 border-stone-400 bg-white p-6 shadow-sm ${className}`} style={{ borderRadius: "255px 15px 225px 15px / 15px 225px 15px 255px" }}>{children}</div>);
+
+    // --- 黑名單管理視窗 ---
+    const BlacklistManagerModal = ({ isOpen, onClose, initialTab }) => {
+      const [tab, setTab] = React.useState('list'); 
+      const [blacklistClients, setBlacklistClients] = React.useState([]);
+      const [loading, setLoading] = React.useState(false);
+      
+      const [newPhone, setNewPhone] = React.useState('');
+      const [newName, setNewName] = React.useState('');
+      const [newNote, setNewNote] = React.useState('');
+
+      React.useEffect(() => {
+        if (isOpen) {
+          setTab(initialTab || 'list');
+          fetchBlacklist();
+        }
+      }, [isOpen, initialTab]);
+
+      const fetchBlacklist = async () => {
+        setLoading(true);
+        try {
+          const q = query(collection(db, CLIENTS_COLLECTION), where("blacklist", "==", true));
+          const querySnapshot = await getDocs(q);
+          const list = [];
+          querySnapshot.forEach((doc) => {
+            list.push(doc.data());
+          });
+          setBlacklistClients(list);
+        } catch (error) {
+          console.error("Error fetching blacklist:", error);
+          alert("讀取黑名單失敗");
+        }
+        setLoading(false);
+      };
+
+      const handleRemoveBlacklist = async (phone) => {
+        if (!confirm(`確定要將 ${phone} 移出黑名單嗎？`)) return;
+        try {
+          const docRef = doc(db, CLIENTS_COLLECTION, phone);
+          await updateDoc(docRef, { blacklist: false });
+          setBlacklistClients(prev => prev.filter(c => c.phone !== phone));
+          alert("已移除");
+        } catch (e) {
+          alert("移除失敗: " + e.message);
+        }
+      };
+
+      const handleAddBlacklist = async () => {
+        if (!newPhone || newPhone.length !== 10) return alert("請輸入正確的10碼電話號碼");
+        if (!newName) return alert("請輸入姓名");
+
+        try {
+          const docRef = doc(db, CLIENTS_COLLECTION, newPhone);
+          await setDoc(docRef, {
+            phone: newPhone,
+            name: newName,
+            notes: newNote,
+            blacklist: true,
+            visitCount: 0 
+          }, { merge: true }); 
+
+          alert("已加入黑名單");
+          setNewPhone(''); setNewName(''); setNewNote('');
+          fetchBlacklist(); 
+          setTab('list'); 
+        } catch (e) {
+          alert("加入失敗: " + e.message);
+        }
+      };
+
+      if (!isOpen) return null;
+
+      return (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 modal-overlay" onClick={onClose}>
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl border-2 border-stone-200 slide-up flex flex-col max-h-[80vh]" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4 border-b border-stone-100 pb-2">
+              <h3 className="font-bold text-stone-700 text-lg flex items-center gap-2">
+                <Icons.Ban className="text-red-500" /> 黑名單管理
+              </h3>
+              <button onClick={onClose}><Icons.X className="text-stone-400" /></button>
+            </div>
+
+            <div className="flex gap-2 mb-4">
+              <button onClick={() => setTab('list')} className={`flex-1 py-1 text-xs font-bold rounded-lg ${tab==='list'?'bg-stone-600 text-white':'bg-stone-100 text-stone-500'}`}>名單列表</button>
+              <button onClick={() => setTab('add')} className={`flex-1 py-1 text-xs font-bold rounded-lg ${tab==='add'?'bg-red-500 text-white':'bg-stone-100 text-stone-500'}`}>新增黑名單</button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto no-scrollbar">
+              {tab === 'list' ? (
+                <div className="space-y-2">
+                  {loading ? <p className="text-center text-xs text-stone-400">載入中...</p> : blacklistClients.length === 0 ? <p className="text-center text-xs text-stone-400 py-4">目前沒有黑名單</p> : 
+                    blacklistClients.map(client => (
+                      <div key={client.phone} className="bg-stone-50 p-3 rounded-lg border border-stone-200 flex justify-between items-center">
+                        <div>
+                          <div className="font-bold text-sm text-stone-700">{client.name}</div>
+                          <div className="text-xs text-stone-500">{client.phone}</div>
+                          {client.notes && <div className="text-[10px] text-red-400 mt-1">{client.notes}</div>}
+                        </div>
+                        <button onClick={() => handleRemoveBlacklist(client.phone)} className="text-stone-400 hover:text-red-500"><Icons.Trash2 size={16} /></button>
+                      </div>
+                    ))
+                  }
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="bg-red-50 p-3 rounded-lg text-xs text-red-500 mb-2">
+                    在此新增的電話將會直接被禁止預約。
+                  </div>
+                  <input type="tel" placeholder="電話號碼 (09xxxxxxxx)" value={newPhone} onChange={e=>setNewPhone(e.target.value)} className="w-full border border-stone-200 rounded-lg p-2 text-sm outline-none" />
+                  <input type="text" placeholder="姓名" value={newName} onChange={e=>setNewName(e.target.value)} className="w-full border border-stone-200 rounded-lg p-2 text-sm outline-none" />
+                  <textarea placeholder="備註 (原因)" value={newNote} onChange={e=>setNewNote(e.target.value)} className="w-full border border-stone-200 rounded-lg p-2 text-sm outline-none h-20" />
+                  <button onClick={handleAddBlacklist} className="w-full bg-red-500 text-white py-2 rounded-lg font-bold shadow-md hover:bg-red-600">加入黑名單</button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // --- 客戶與預約邏輯 ---
+    const BookingModal = ({ isOpen, onClose, slot, dateKey }) => {
+      const [step, setStep] = React.useState(1);
+      const [clientPhone, setClientPhone] = React.useState('');
+      const [clientData, setClientData] = React.useState(null); 
+      const [loading, setLoading] = React.useState(false);
+      const [clientName, setClientName] = React.useState('');
+      
+      const [services, setServices] = React.useState({
+        upper: false, upperTint: false,
+        lower: false, lowerTint: false, brow: false
+      });
+
+      React.useEffect(() => {
+        if(isOpen) {
+          setStep(1); setClientPhone(''); setClientData(null);
+          setClientName(''); 
+          setServices({ upper: false, upperTint: false, lower: false, lowerTint: false, brow: false });
+        }
+      }, [isOpen]);
+
+      if (!isOpen) return null;
+
+      const checkClient = async () => {
+        if(clientPhone.length !== 10) return alert("請確認電話號碼是否有誤~");
+        
+        setLoading(true);
+        try {
+          const docRef = doc(db, CLIENTS_COLLECTION, clientPhone);
+          const docSnap = await getDoc(docRef);
+          
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            if (data.blacklist) {
+              alert("您有預約未到的紀錄, 請直接利用官方Line與店家聯繫~");
+              window.location.href = "https://lin.ee/49zZehk";
+              onClose();
+              return;
+            }
+            setClientData({ ...data, status: 'old' });
+            setClientName(data.name || '');
+          } else {
+            setClientData({ status: 'new' });
+          }
+          setStep(2);
+        } catch (e) {
+          console.error(e);
+          alert("系統錯誤，請稍後再試");
+        }
+        setLoading(false);
+      };
+
+      const isNewClient = clientData?.status === 'new';
+      
+      const PRICES = {
+        upper: isNewClient ? 699 : 999,
+        brow: isNewClient ? 699 : 999,
+        lower_single: 500,
+        lower_combo: 300,
+        tint_upper: 200,
+        tint_lower: 100
+      };
+
+      let total = 0;
+      if (services.upper) total += PRICES.upper;
+      if (services.lower) total += (services.upper ? PRICES.lower_combo : PRICES.lower_single);
+      if (services.brow) total += PRICES.brow;
+      
+      let comboDiscount = 0;
+      // [修改] 任一睫毛 + 野生眉 優惠邏輯
+      if ((services.upper || services.lower) && services.brow) {
+          comboDiscount = 100;
+          total -= comboDiscount;
+      }
+
+      if (services.upperTint && services.upper) total += PRICES.tint_upper;
+      if (services.lowerTint && services.lower) total += PRICES.tint_lower;
+
+      let tintDiscount = 0;
+      if (services.upperTint && services.lowerTint && services.upper && services.lower) {
+        tintDiscount = 50;
+        total -= tintDiscount;
+      }
+
+      const handleConfirm = async () => {
+        if (!clientName) return alert("請填寫姓名以便聯繫");
+
+        const items = [];
+        if (services.upper) items.push(`上睫毛管理 ($${PRICES.upper})`);
+        if (services.upperTint) items.push(`  + 濃黑養護 ($${PRICES.tint_upper})`);
+        if (services.lower) items.push(`下睫毛管理 ($${services.upper ? PRICES.lower_combo : PRICES.lower_single})`);
+        if (services.lowerTint) items.push(`  + 濃黑養護 ($${PRICES.tint_lower})`);
+        if (services.brow) items.push(`野生眉雕塑 ($${PRICES.brow})`);
+        
+        if ((services.upper || services.lower) && services.brow) items.push(`(眉睫合購折抵 -$100)`);
+        
+        if (tintDiscount > 0) items.push(`(濃黑養護合購優惠 -$50)`);
+
+        if (!isNewClient) items.push(`(歡迎回娘家♡)`);
+
+        let extraInfo = '';
+        if (slot.location.includes('新竹')) extraInfo = '\n地址：(請填寫詳細地址，到府費$100-150視距離報價)';
+
+        const text = `Hi Bianca, 我想預約：\n日期：${dateKey}\n時間：${slot.time}\n地點：${slot.location}${extraInfo}\n\n預約項目：\n${items.join('\n')}\n\n預估金額：$${total}\n\n姓名：${clientName}\n電話：${clientPhone}\n\n*備註：當天若帶妝，需加收$100卸妝費*`;
+
+        let copySuccess = false;
+        try {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed"; 
+            textArea.style.left = "-9999px";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            copySuccess = document.execCommand('copy');
+            document.body.removeChild(textArea);
+        } catch (e) {
+            console.error("Copy failed", e);
+        }
+
+        try {
+          await runTransaction(db, async (transaction) => {
+            const scheduleRef = doc(db, SCHEDULE_COLLECTION, dateKey);
+            const scheduleDoc = await transaction.get(scheduleRef);
+            
+            if (!scheduleDoc.exists()) throw new Error("行程表資料不存在");
+
+            const slots = scheduleDoc.data().slots || [];
+            
+            // [新增] 檢查當日重複預約 (不同時段但相同人)
+            const duplicateBooking = slots.find(s => 
+              s.status === 'booked' && 
+              s.clientName === clientName && 
+              s.clientPhone === clientPhone
+            );
+
+            if (duplicateBooking) {
+                throw new Error("DUPLICATE_BOOKING");
+            }
+
+            const targetSlotIndex = slots.findIndex(s => s.id === slot.id);
+
+            if (targetSlotIndex === -1) throw new Error("找不到該時段");
+            if (slots[targetSlotIndex].status !== 'open') throw new Error("抱歉！該時段剛剛被其他人搶先預約了 😭");
+
+            slots[targetSlotIndex].status = 'booked';
+            slots[targetSlotIndex].clientName = clientName;
+            slots[targetSlotIndex].clientPhone = clientPhone;
+
+            transaction.update(scheduleRef, { slots: slots });
+
+            const clientRef = doc(db, CLIENTS_COLLECTION, clientPhone);
+            transaction.set(clientRef, {
+              phone: clientPhone,
+              name: clientName,
+              lastVisit: dateKey,
+              visitCount: (clientData?.visitCount || 0) + 1,
+              blacklist: false
+            }, { merge: true });
+          });
+
+          if (copySuccess) {
+              alert("預約成功！時段已為您保留。\n預約資訊已複製，即將開啟 LINE，請「貼上」訊息傳送即可。");
+          } else {
+              alert("預約成功！時段已為您保留。\n(自動複製失敗) 請手動複製以下內容傳送給 LINE 客服：\n\n" + text);
+          }
+
+          window.location.href = "https://lin.ee/49zZehk";
+          
+          setTimeout(() => {
+             onClose();
+          }, 500);
+
+        } catch (e) {
+          // [新增] 處理重複預約錯誤
+          if (e.message === "DUPLICATE_BOOKING") {
+              alert("您已預約不同時段, 請直接使用Line向Bianca官方聯繫");
+              onClose();
+              return;
+          }
+
+          alert("預約失敗：" + e.message);
+          if (e.message.includes("搶先")) {
+             onClose();
+          }
+        }
+      };
+
+      return (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 modal-overlay" onClick={onClose}>
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl border-2 border-stone-200 slide-up" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-bold text-stone-700 text-lg">
+                {step === 1 ? '會員驗證' : (isNewClient ? '✨ 新客體驗預約' : '❤️ VIP 回訪預約')}
+              </h3>
+              <button onClick={onClose}><Icons.X className="text-stone-400" /></button>
+            </div>
+            
+            {step === 1 ? (
+              <div className="space-y-4">
+                <p className="text-sm text-stone-500">請輸入手機號碼，系統將自動查詢是否享有新客體驗價。</p>
+                <input 
+                  type="tel" 
+                  value={clientPhone}
+                  onChange={e => setClientPhone(e.target.value)}
+                  placeholder="09xxxxxxxx"
+                  className="w-full border-2 border-stone-200 rounded-xl p-3 text-lg outline-none focus:border-[#dcb5bc]"
+                />
+                <button 
+                  onClick={checkClient} 
+                  disabled={loading}
+                  className="w-full bg-[#dcb5bc] text-white py-3 rounded-xl font-bold shadow-md hover:opacity-90 transition disabled:opacity-50"
+                >
+                  {loading ? '查詢中...' : '下一步'}
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3 mb-6 max-h-[60vh] overflow-y-auto no-scrollbar">
+                
+                <div className="mb-2">
+                  <input type="text" placeholder="請輸入您的姓名" value={clientName} onChange={e=>setClientName(e.target.value)} className="w-full border-2 border-stone-200 rounded-lg p-2 text-sm outline-none focus:border-[#dcb5bc]" />
+                </div>
+
+                <div className="border border-stone-200 rounded-xl p-3">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input type="checkbox" checked={services.upper} onChange={() => setServices(p => ({...p, upper: !p.upper, upperTint: !p.upper ? false : p.upperTint}))} className="w-5 h-5 accent-[#dcb5bc]" />
+                    <span className="font-bold text-stone-600">上睫毛管理 <span className="text-[#b07d88]">${PRICES.upper}</span></span>
+                  </label>
+                  {services.upper && (
+                    <div className="ml-8 mt-2 pt-2 border-t border-dashed border-stone-100">
+                      <label className="flex items-center gap-2 cursor-pointer text-sm text-stone-500">
+                        <input type="checkbox" checked={services.upperTint} onChange={() => setServices(p => ({...p, upperTint: !p.upperTint}))} className="accent-[#dcb5bc]" />
+                        + 加購濃黑養護 ($200)
+                      </label>
+                    </div>
+                  )}
+                </div>
+
+                <div className="border border-stone-200 rounded-xl p-3">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input type="checkbox" checked={services.lower} onChange={() => setServices(p => ({...p, lower: !p.lower, lowerTint: !p.lower ? false : p.lowerTint}))} className="w-5 h-5 accent-[#dcb5bc]" />
+                    <div className="flex flex-col">
+                      <span className="font-bold text-stone-600">下睫毛管理</span>
+                      <span className="text-xs text-stone-400">單作$500 / 搭配上睫毛優惠 <span className="text-[#b07d88] font-bold">$300</span></span>
+                    </div>
+                  </label>
+                  {services.lower && (
+                    <div className="ml-8 mt-2 pt-2 border-t border-dashed border-stone-100">
+                      <label className="flex items-center gap-2 cursor-pointer text-sm text-stone-500">
+                        <input type="checkbox" checked={services.lowerTint} onChange={() => setServices(p => ({...p, lowerTint: !p.lowerTint}))} className="accent-[#dcb5bc]" />
+                        + 加購濃黑養護 ($100)
+                      </label>
+                    </div>
+                  )}
+                </div>
+
+                <div className="border border-stone-200 rounded-xl p-3">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input type="checkbox" checked={services.brow} onChange={() => setServices(p => ({...p, brow: !p.brow}))} className="w-5 h-5 accent-[#dcb5bc]" />
+                    <div className="flex flex-col">
+                      <span className="font-bold text-stone-600">野生眉雕塑 <span className="text-[#b07d88]">${PRICES.brow}</span></span>
+                      {(services.upper || services.lower) && <span className="text-xs text-[#b07d88] font-bold">✨ 與任一睫毛管理合購再折 $100</span>}
+                    </div>
+                  </label>
+                </div>
+
+                <div className="text-xs text-red-400 bg-red-50 p-2 rounded-lg text-center">
+                  ⚠️ 提醒：當天若帶妝到，需加收 $100 卸妝費
+                </div>
+
+                <div className="bg-[#fae8eb] p-4 rounded-xl flex flex-col gap-1">
+                  <div className="flex justify-between items-center">
+                    <span className="text-stone-600 font-bold text-sm">預估金額</span>
+                    <span className="text-[#b07d88] font-bold text-xl">${total}</span>
+                  </div>
+                  {/* [新增] 優惠提示 */}
+                  {comboDiscount > 0 && <span className="text-xs text-[#b07d88] text-right">已扣除睫毛管理與野生眉合購優惠 -$100</span>}
+                  
+                  {/* [新增] 上下睫毛合購優惠提示 */}
+                  {(services.upper && services.lower) && <span className="text-xs text-[#b07d88] text-right">已扣除上/ 下睫毛管理合購優惠 -$200</span>}
+
+                  {tintDiscount > 0 && <span className="text-xs text-[#b07d88] text-right">已扣除濃黑養護合購優惠 -$50</span>}
+                </div>
+
+                <button onClick={handleConfirm} disabled={total === 0} className="w-full bg-[#dcb5bc] text-white py-3 rounded-xl font-bold shadow-md hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed">
+                  確認預約，前往 LINE
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    };
+
+    // --- 管理者後台組件 ---
+    const AdminPanel = ({ selectedDateKey, newTime, setNewTime, newLocation, setNewLocation, addSlot }) => {
+      const [view, setView] = React.useState('booking'); 
+      const [phoneSearch, setPhoneSearch] = React.useState('');
+      const [searchResult, setSearchResult] = React.useState(null);
+      const [showBlacklistManager, setShowBlacklistManager] = React.useState(false);
+      const [blacklistManagerTab, setBlacklistManagerTab] = React.useState('list');
+
+      const locations = ['新竹地區到府', '竹北自宅', '淡水自宅'];
+
+      const searchClient = async () => {
+        if(!phoneSearch) return;
+        try {
+          const docRef = doc(db, CLIENTS_COLLECTION, phoneSearch);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) setSearchResult(docSnap.data());
+          else setSearchResult('not_found');
+        } catch(e) { alert(e.message); }
+      };
+
+      const toggleBlacklist = async () => {
+        if(!searchResult || searchResult === 'not_found') return;
+        try {
+          await updateDoc(doc(db, CLIENTS_COLLECTION, searchResult.phone), {
+            blacklist: !searchResult.blacklist
+          });
+          setSearchResult(prev => ({...prev, blacklist: !prev.blacklist}));
+        } catch(e) { alert(e.message); }
+      };
+
+      const saveNote = async (note) => {
+        try {
+          await updateDoc(doc(db, CLIENTS_COLLECTION, searchResult.phone), { notes: note });
+          alert("備註已儲存");
+        } catch(e) { alert(e.message); }
+      };
+
+      const openBlacklistAdd = () => {
+        setBlacklistManagerTab('add');
+        setShowBlacklistManager(true);
+      };
+
+      const openBlacklistSettings = () => {
+        setBlacklistManagerTab('list');
+        setShowBlacklistManager(true);
+      };
+
+      return (
+        <div className="mb-6 bg-white p-3 rounded-xl border border-stone-200 shadow-sm">
+          <div className="flex gap-2 mb-4 border-b border-stone-100 pb-2">
+            <button onClick={() => setView('booking')} className={`flex-1 py-1 text-xs font-bold rounded-lg ${view==='booking'?'bg-[#dcb5bc] text-white':'text-stone-400'}`}>排程管理</button>
+            <button onClick={() => setView('clients')} className={`flex-1 py-1 text-xs font-bold rounded-lg ${view==='clients'?'bg-[#dcb5bc] text-white':'text-stone-400'}`}>客戶管理 (黑名單)</button>
+          </div>
+          {view === 'booking' ? (
+            <div className="flex flex-col gap-2">
+              <div className="text-xs text-center text-stone-400 mb-1">設定 {selectedDateKey} 的時段</div>
+              <div className="flex gap-2">
+                <select value={newLocation} onChange={(e) => setNewLocation(e.target.value)} className="flex-1 bg-stone-50 border border-stone-200 rounded-lg text-sm p-2 text-stone-600 outline-none">{locations.map(loc => <option key={loc} value={loc}>{loc}</option>)}</select>
+                <input type="time" value={newTime} onChange={(e) => setNewTime(e.target.value)} className="bg-stone-50 border border-stone-200 rounded-lg text-sm p-2 text-stone-600 outline-none" />
+              </div>
+              <button onClick={addSlot} className="w-full bg-stone-600 text-white py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2"><Icons.Plus size={16} /> 新增開放時段</button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex gap-2">
+                <input type="tel" placeholder="輸入手機號碼查詢" value={phoneSearch} onChange={e=>setPhoneSearch(e.target.value)} className="flex-1 border border-stone-200 rounded-lg p-2 text-sm outline-none"/>
+                <button onClick={searchClient} className="bg-stone-500 text-white px-2 rounded-lg"><Icons.Search size={16}/></button>
+                <button onClick={openBlacklistAdd} className="bg-red-400 text-white px-2 rounded-lg" title="新增黑名單"><Icons.UserPlus size={16}/></button>
+                <button onClick={openBlacklistSettings} className="bg-stone-600 text-white px-2 rounded-lg" title="管理黑名單"><Icons.Settings size={16}/></button>
+              </div>
+              
+              {searchResult === 'not_found' && <div className="text-xs text-center text-stone-400">查無此客戶資料</div>}
+              {searchResult && searchResult !== 'not_found' && (
+                <div className="bg-stone-50 p-3 rounded-lg text-sm">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="font-bold text-lg">{searchResult.name}</span>
+                    {searchResult.blacklist && <span className="bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full">黑名單</span>}
+                  </div>
+                  <div className="text-stone-500 text-xs mb-2">
+                    來訪次數: {searchResult.visitCount || 0}
+                  </div>
+                  <textarea placeholder="備註 (例如: 預約未到...)" defaultValue={searchResult.notes || ''} onBlur={(e)=>saveNote(e.target.value)} className="w-full border border-stone-200 rounded p-1 text-xs mb-2 h-16"></textarea>
+                  <button onClick={toggleBlacklist} className={`w-full py-1 rounded text-xs font-bold ${searchResult.blacklist ? 'bg-gray-200 text-stone-600' : 'bg-red-100 text-red-500'}`}>
+                    {searchResult.blacklist ? '解除黑名單' : '加入黑名單'}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+          <BlacklistManagerModal isOpen={showBlacklistManager} onClose={()=>setShowBlacklistManager(false)} initialTab={blacklistManagerTab} />
+        </div>
+      );
+    };
+
+    // --- 日曆組件 (包含預約列表與提醒) ---
+    const CalendarView = ({ isAdmin, user }) => {
+      const [currentDate, setCurrentDate] = React.useState(new Date());
+      const [selectedDate, setSelectedDate] = React.useState(new Date());
+      const [availability, setAvailability] = React.useState({});
+      const [bookedList, setBookedList] = React.useState([]);
+      const [loading, setLoading] = React.useState(true);
+      const [newTime, setNewTime] = React.useState('10:00');
+      const [newLocation, setNewLocation] = React.useState('竹北自宅');
+      const [modalOpen, setModalOpen] = React.useState(false);
+      const [selectedSlot, setSelectedSlot] = React.useState(null);
+      const locationColors = { '新竹地區到府': 'bg-red-400', '新竹到府地區': 'bg-red-400', '竹北自宅': 'bg-yellow-400', '淡水自宅': 'bg-green-400' };
+      const year = currentDate.getFullYear();
+      const month = currentDate.getMonth();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      const firstDayOfMonth = new Date(year, month, 1).getDay();
+      const monthNames = ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"];
+      const formatDateKey = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+      const selectedDateKey = formatDateKey(selectedDate);
+
+      React.useEffect(() => {
+        const unsubscribe = onSnapshot(collection(db, SCHEDULE_COLLECTION), (snapshot) => {
+          const data = {};
+          const allBooked = [];
+          snapshot.forEach(doc => {
+            const slots = doc.data().slots || [];
+            data[doc.id] = slots;
+            slots.forEach(slot => { if (slot.status === 'booked') allBooked.push({ date: doc.id, ...slot }); });
+          });
+          setAvailability(data);
+          setBookedList(allBooked.sort((a,b) => (a.date + a.time).localeCompare(b.date + b.time)));
+          setLoading(false);
+        });
+        return () => unsubscribe();
+      }, [user]);
+
+      const addSlot = async () => {
+        const slotData = { id: Date.now().toString(), time: newTime, location: newLocation, status: 'open' };
+        try { await setDoc(doc(db, SCHEDULE_COLLECTION, selectedDateKey), { slots: arrayUnion(slotData) }, { merge: true }); } catch (e) { alert(e.message); }
+      };
+
+      const updateSlotStatus = async (slot, newStatus, clientName = '') => {
+        try {
+          const docRef = doc(db, SCHEDULE_COLLECTION, selectedDateKey);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            const updatedSlots = docSnap.data().slots.map(s => s.id === slot.id ? { ...s, status: newStatus, clientName } : s);
+            await setDoc(docRef, { slots: updatedSlots });
+          }
+        } catch (e) { console.error(e); }
+      };
+
+      const removeSlot = async (slot) => {
+        try { await updateDoc(doc(db, SCHEDULE_COLLECTION, selectedDateKey), { slots: arrayRemove(slot) }); } catch (e) { console.error(e); }
+      };
+
+      const handleUserClick = (slot) => { setSelectedSlot(slot); setModalOpen(true); };
+      const handleAdminBook = (slot) => { const name = prompt("請輸入預約客人姓名："); if (name) updateSlotStatus(slot, 'booked', name); };
+      const changeMonth = (offset) => setCurrentDate(new Date(year, month + offset, 1));
+      
+      const sendLineReminder = (slot) => {
+        const msg = `Hi ${slot.clientName}，提醒您明天 ${slot.date} ${slot.time} 在 ${slot.location} 有預約喔！\n若需更改時間請提前告知，謝謝❤️\n(當天若帶妝需加收$100卸妝費)`;
+        const textArea = document.createElement("textarea");
+        textArea.value = msg;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        alert("提醒訊息已複製！將開啟 LINE");
+        window.location.href = "https://lin.ee/49zZehk";
+      };
+
+      return (
+        <div className="w-full">
+           <div className="flex justify-between items-center mb-4 px-2">
+             <button onClick={() => changeMonth(-1)} className="p-1 hover:bg-stone-100 rounded-full"><Icons.ChevronDown className="rotate-90 text-stone-500" /></button>
+             <h3 className="text-lg font-bold text-stone-700">{year}年 {monthNames[month]}</h3>
+             <button onClick={() => changeMonth(1)} className="p-1 hover:bg-stone-100 rounded-full"><Icons.ChevronDown className="-rotate-90 text-stone-500" /></button>
+           </div>
+           <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 mb-4 text-[10px] text-stone-500">
+              <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-400"></span>新竹地區到府</div>
+              <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-yellow-400"></span>竹北自宅</div>
+              <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-400"></span>淡水自宅</div>
+           </div>
+           <div className="grid grid-cols-7 gap-1 mb-6 text-center">
+             {['日', '一', '二', '三', '四', '五', '六'].map(d => <div key={d} className="text-xs text-[#b07d88] font-bold mb-2">{d}</div>)}
+             {Array.from({ length: firstDayOfMonth }).map((_, i) => <div key={`empty-${i}`} className="aspect-square"></div>)}
+             {Array.from({ length: daysInMonth }).map((_, i) => {
+               const d = i + 1;
+               const dateObj = new Date(year, month, d);
+               const dateKey = formatDateKey(dateObj);
+               const isSelected = selectedDate.getDate() === d && selectedDate.getMonth() === month;
+               const dateSlots = availability[dateKey] || [];
+               const openSlots = dateSlots.filter(s => s.status === 'open');
+               const hasSlots = openSlots.length > 0;
+               const dateLocations = [...new Set(openSlots.map(s => s.location))];
+               return (
+                 <button key={d} onClick={() => setSelectedDate(dateObj)}
+                   className={`aspect-square rounded-full flex flex-col items-center justify-center relative transition ${isSelected ? 'bg-[#dcb5bc] text-white shadow-md' : 'hover:bg-stone-100 text-stone-600'} ${!hasSlots && !isSelected ? 'text-stone-300' : ''}`}
+                 >
+                   <span className={`text-sm font-medium relative ${!hasSlots ? 'after:content-[""] after:absolute after:top-1/2 after:left-[-2px] after:right-[-2px] after:h-[2px] after:bg-red-400 after:-rotate-12 after:opacity-60' : ''}`}>{d}</span>
+                   {hasSlots && <div className="absolute bottom-1.5 flex gap-0.5">{dateLocations.map(loc => <span key={loc} className={`w-1.5 h-1.5 rounded-full ${locationColors[loc] || 'bg-gray-300'} ring-1 ring-white`} />)}</div>}
+                 </button>
+               );
+             })}
+           </div>
+           
+           <div className="bg-[#fdfbf7] border-t-2 border-dashed border-stone-200 pt-4">
+             <div className="text-center mb-4"><span className="bg-stone-200 text-stone-600 px-3 py-1 rounded-full text-xs font-bold">{selectedDateKey}</span></div>
+             {isAdmin && <AdminPanel selectedDateKey={selectedDateKey} newTime={newTime} setNewTime={setNewTime} newLocation={newLocation} setNewLocation={setNewLocation} addSlot={addSlot} />}
+             <div className="space-y-2">
+               {loading ? <p className="text-center text-stone-400 text-sm">載入中...</p> : (!availability[selectedDateKey] || availability[selectedDateKey].length === 0) ? 
+                 <div className="text-center py-6 text-stone-400"><Icons.Calendar size={32} className="mx-auto mb-2 opacity-30" /><p className="text-xs">本日尚未開放預約<br/>或已額滿</p></div> : 
+                 availability[selectedDateKey].sort((a, b) => a.time.localeCompare(b.time)).map((slot, index) => (
+                   <div key={index} className={`bg-white border border-stone-200 rounded-xl p-3 flex justify-between items-center shadow-sm ${slot.status === 'booked' ? 'opacity-60 bg-stone-100' : ''}`}>
+                     <div className="flex flex-col">
+                       <div className="flex items-center gap-2 text-stone-700 font-bold text-lg">
+                         <Icons.Clock size={16} className="text-[#b07d88]" />
+                         <span className={slot.status === 'booked' ? 'line-through text-stone-400' : ''}>{slot.time}</span>
+                         {slot.status === 'booked' && <span className="bg-stone-500 text-white text-[10px] px-2 rounded-full">已預約</span>}
+                       </div>
+                       <div className="flex items-center gap-2 text-stone-500 text-xs mt-1">
+                         <Icons.MapPin size={12} className={locationColors[slot.location]?.replace('bg-', 'text-') || 'text-stone-400'} />{slot.location}
+                         {slot.location.includes('新竹') && <span className="text-[10px] text-red-400 ml-1 bg-red-50 px-1 rounded">到府費$100-150</span>}
+                       </div>
+                       {isAdmin && slot.status === 'booked' && <div className="text-xs text-[#b07d88] font-bold mt-1">客：{slot.clientName}</div>}
+                     </div>
+                     {isAdmin ? (
+                       <div className="flex gap-2">
+                         {slot.status === 'open' && <button onClick={() => handleAdminBook(slot)} className="bg-green-50 text-green-600 p-2 rounded-lg text-xs font-bold">登記</button>}
+                         {slot.status === 'booked' && <button onClick={() => updateSlotStatus(slot, 'open')} className="bg-yellow-50 text-yellow-600 p-2 rounded-lg text-xs font-bold">取消</button>}
+                         <button onClick={() => removeSlot(slot)} className="bg-red-50 text-red-500 p-2 rounded-lg"><Icons.Trash2 size={16} /></button>
+                       </div>
+                     ) : (
+                       slot.status === 'open' ? 
+                       <button onClick={() => handleUserClick(slot)} className="bg-[#fae8eb] text-[#b07d88] px-4 py-2 rounded-lg text-sm font-bold hover:bg-[#dcb5bc] hover:text-white transition">預約</button> :
+                       <button disabled className="bg-stone-100 text-stone-400 px-4 py-2 rounded-lg text-sm font-bold">已滿</button>
+                     )}
+                   </div>
+                 ))
+               }
+             </div>
+           </div>
+           
+           {/* 預約列表 (含提醒功能) */}
+           {isAdmin && bookedList.length > 0 && (
+             <div className="mt-8 border-t-2 border-dashed border-stone-300 pt-6">
+               <h3 className="text-center font-bold text-stone-600 mb-4 flex justify-center gap-2">已預約列表 (待提醒)</h3>
+               <div className="space-y-2">
+                 {bookedList.map((slot, i) => (
+                   <div key={i} className="bg-stone-50 border border-stone-200 rounded-lg p-3 text-sm flex justify-between items-center">
+                     <div>
+                       <div className="font-bold text-stone-700">{slot.date} {slot.time}</div>
+                       <div className="text-xs text-stone-500">{slot.location} | 客：{slot.clientName}</div>
+                     </div>
+                     <button onClick={() => sendLineReminder(slot)} className="bg-[#06c755] text-white px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-1">
+                       <Icons.Send size={12} /> LINE 提醒
+                     </button>
+                   </div>
+                 ))}
+               </div>
+             </div>
+           )}
+           <BookingModal isOpen={modalOpen} onClose={() => setModalOpen(false)} slot={selectedSlot} dateKey={selectedDateKey} />
+        </div>
+      );
+    };
+
+    // --- 主程式架構 ---
+    const PriceItem = ({ name, price, desc }) => (
+      <div className="flex justify-between items-baseline border-b border-dotted border-stone-300 pb-2 last:border-0">
+        <div className="flex flex-col"><span className="font-medium text-stone-700 text-base">{name}</span>{desc && <span className="text-xs text-stone-400 mt-0.5">{desc}</span>}</div>
+        <span className="font-bold text-[#b07d88] text-lg shrink-0 ml-4">{price}</span>
+      </div>
+    );
+
+    const AccordionItem = ({ q, a }) => {
+      const [isOpen, setIsOpen] = React.useState(false);
+      return (
+        <div className="border-2 border-stone-200 rounded-2xl bg-white overflow-hidden transition-all duration-300">
+          <button onClick={() => setIsOpen(!isOpen)} className="w-full flex justify-between items-center p-4 text-left hover:bg-stone-50 transition">
+            <div className="flex items-center gap-3"><span className="bg-[#dcb5bc] text-white text-xs font-bold px-2 py-1 rounded-full">Q</span><span className="font-medium text-stone-700">{q}</span></div>
+            {isOpen ? <Icons.ChevronUp className="text-stone-400 w-5 h-5" /> : <Icons.ChevronDown className="text-stone-400 w-5 h-5" />}
+          </button>
+          {isOpen && <div className="px-4 pb-4 pt-0 text-sm text-stone-500 leading-relaxed border-t border-stone-100"><div className="mt-3 flex gap-3"><span className="text-[#b07d88] font-bold text-lg leading-none mt-[-2px]">A.</span><span>{a}</span></div></div>}
+        </div>
+      );
+    };
+
+    // === 主應用程式 (已修正重複問題) ===
+    function App() {
+      const [isMenuOpen, setIsMenuOpen] = React.useState(false);
+      const [activeTab, setActiveTab] = React.useState('price');
+      // --- 修改開始：新的狀態管理 ---
+      const [isAdmin, setIsAdmin] = React.useState(false);
+      const [showAdminLogin, setShowAdminLogin] = React.useState(false);
+      const [adminEmailInput, setAdminEmailInput] = React.useState(''); // 新增 Email 輸入
+      const [adminPassword, setAdminPassword] = React.useState('');
+      const [loadingAuth, setLoadingAuth] = React.useState(true);
+      
+      // 設定您的管理員 Email (必須跟 Firebase Console 設的一樣)
+      const ADMIN_EMAIL = "bianca.studio2026@gmail.com"; 
+
+      React.useEffect(() => {
+        // 監聽登入狀態改變
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+          if (user) {
+            // 如果登入的使用者 Email 等於您的管理員 Email，就是管理員模式
+            if (user.email === ADMIN_EMAIL) {
+              setIsAdmin(true);
+            } else {
+              setIsAdmin(false);
+            }
+          } else {
+            // 如果沒有使用者 (例如剛登出)，自動執行匿名登入，確保客人功能正常
+            signInAnonymously(auth).catch(console.error);
+            setIsAdmin(false);
+          }
+          setLoadingAuth(false);
+        });
+        return () => unsubscribe();
+      }, []);
+
+      // 處理管理員登入
+      const handleAdminLogin = async () => {
+        if (!adminEmailInput || !adminPassword) return alert("請輸入帳號密碼");
+        try {
+          await signInWithEmailAndPassword(auth, adminEmailInput, adminPassword);
+          setShowAdminLogin(false);
+          setAdminPassword(''); // 清空密碼欄位
+          alert("管理員登入成功！");
+        } catch (error) {
+          console.error(error);
+          alert("登入失敗：帳號或密碼錯誤");
+        }
+      };
+
+      // 處理登出 (變回一般客人模式)
+      const handleAdminLogout = async () => {
+        await signOut(auth);
+        alert("已登出管理模式");
+      };
+      // --- 修改結束 ---
+
+      const scrollToSection = (id) => { setActiveTab(id); setIsMenuOpen(false); const element = document.getElementById(id); if (element) element.scrollIntoView({ behavior: 'smooth' }); };
+
+      return (
+        <div className="min-h-screen bg-[#fdfbf7] font-sans selection:bg-pink-100 pb-20">
+          <nav className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-sm border-b-2 border-dashed border-stone-200">
+            <div className="max-w-md mx-auto px-4 h-16 flex items-center justify-between">
+              <div className="flex items-center gap-2" onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})}>
+                <DoodleEye className="w-8 h-6 text-stone-600" /><span className="font-bold text-lg tracking-wider text-stone-600">Bianca_eye</span>
+              </div>
+              <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="p-2 text-stone-600 hover:bg-stone-100 rounded-full transition">{isMenuOpen ? <Icons.X size={24} /> : <Icons.Menu size={24} />}</button>
+            </div>
+            {isMenuOpen && <div className="absolute top-16 left-0 right-0 bg-white border-b-2 border-stone-200 shadow-lg p-4 animate-in slide-in-from-top-2"><div className="flex flex-col gap-4 items-center">{[{id:'price',label:'價目表'},{id:'policy',label:'預約須知'},{id:'qa',label:'Q&A'},{id:'booking',label:'預約方式'}].map(item => <button key={item.id} onClick={() => scrollToSection(item.id)} className={`text-lg font-medium tracking-wide w-full py-2 text-center rounded-xl transition ${activeTab === item.id ? 'bg-stone-100 text-[#b07d88]' : 'text-stone-500'}`}>{item.label}</button>)}</div></div>}
+          </nav>
+
+          <header className="pt-28 pb-12 px-4 text-center max-w-md mx-auto">
+            <div className="relative inline-block"><h1 className="text-3xl font-bold text-stone-600 mb-2 tracking-widest">Bianca_eye.studio</h1><Icons.Sparkles className="absolute -top-6 -right-6 w-6 h-6 text-yellow-400 animate-pulse" /><SquiggleLine className="w-32 h-4 text-[#dcb5bc] mx-auto" /></div>
+            <p className="mt-4 text-stone-500 font-medium tracking-wide">專屬妳的睫毛管理室 <br/><span className="text-sm">打造自然、輕盈、有神的雙眼</span></p>
+          </header>
+
+          <main className="max-w-md mx-auto px-4 space-y-16">
+            <section id="price" className="scroll-mt-24">
+              <div className="flex items-center gap-2 mb-6 justify-center"><Icons.Star className="w-5 h-5 text-[#dcb5bc]" fill="#dcb5bc" /><h2 className="text-xl font-bold text-stone-600">Service Menu</h2><Icons.Star className="w-5 h-5 text-[#dcb5bc]" fill="#dcb5bc" /></div>
+              <div className="space-y-4">
+                <HandDrawnBorder className="relative overflow-hidden">
+                   <div className="absolute top-0 right-0 w-16 h-16 bg-[#fae8eb] rounded-bl-full -mr-8 -mt-8 z-0"></div>
+                   <div className="relative z-10">
+                    <h3 className="text-lg font-bold text-[#b07d88] mb-4 flex items-center gap-2"><Icons.Heart size={16} /> 原生翹睫</h3>
+                    <div className="space-y-3">
+                      <PriceItem name="上睫毛管理" price="$999" desc={<span><span className="text-[#b07d88] font-bold">首次體驗價 $699</span><br/>含睫毛泡泡洗 + 滋養修護</span>} />
+                      <PriceItem name="下睫毛管理" price="$500" desc="搭配上睫毛優惠 $300" />
+                      <div className="pt-3 border-t border-dashed border-stone-200 mt-1"><div className="flex justify-between items-baseline mb-2"><span className="font-medium text-stone-700 text-base">加購濃黑養護</span></div><div className="text-xs text-stone-500 space-y-1.5 pl-2 border-l-2 border-[#dcb5bc]/30"><div className="flex justify-between items-center"><span>上睫毛</span> <span className="text-stone-400">+$200</span></div><div className="flex justify-between items-center"><span>下睫毛</span> <span className="text-stone-400">+$100</span></div><div className="flex justify-between items-center bg-[#fae8eb]/50 rounded px-1 -mx-1 py-0.5"><span className="text-[#b07d88] font-medium">上下睫毛一起</span> <span className="text-[#b07d88] font-bold">+$250</span></div></div></div>
+                    </div>
+                   </div>
+                </HandDrawnBorder>
+                <HandDrawnBorder>
+                  <h3 className="text-lg font-bold text-[#b07d88] mb-4 flex items-center gap-2"><Icons.Heart size={16} /> 野生眉雕塑</h3>
+                  <div className="space-y-3">
+                    <PriceItem name="野生眉雕塑" price="$999" desc={<span className="text-[#b07d88] font-bold">首次體驗價 $699</span>} />
+                    <div className="mt-2 bg-[#fff5f7] border border-[#dcb5bc] rounded-lg p-3 text-center transform -rotate-1"><span className="block text-sm text-stone-600 font-medium mb-1">✨ 變美組合 ✨</span><div className="text-stone-500 text-xs">睫毛管理 + 野生眉雕塑</div><div className="text-[#b07d88] font-bold text-lg mt-0.5">合購現折 $100</div></div>
+                  </div>
+                </HandDrawnBorder>
+                <div className="relative mt-4 mx-2"><div className="absolute -top-4 -left-3 transform -rotate-12"><Icons.Sparkles className="w-8 h-8 text-[#dcb5bc] fill-[#fae8eb]" /></div><div className="border-2 border-dashed border-[#dcb5bc] rounded-2xl bg-white p-4 text-center shadow-sm"><p className="text-stone-500 font-medium mb-1">受夠了睫毛夾？</p><div className="text-[#b07d88] font-bold text-xl">8週內回訪續作，現折 $100</div></div></div>
+                <div className="relative mt-4 mx-2"><div className="absolute -top-3 -right-2 transform rotate-12"><Icons.Star className="w-8 h-8 text-yellow-400 fill-yellow-400 drop-shadow-sm" /></div><div className="border-2 border-dashed border-[#dcb5bc] rounded-2xl bg-white p-4 text-center shadow-sm"><h3 className="font-bold text-[#b07d88] text-lg mb-2 flex justify-center items-center gap-2"><Icons.Heart className="w-4 h-4 fill-[#b07d88]" /> 大方分享，享優惠 <Icons.Heart className="w-4 h-4 fill-[#b07d88]" /></h3><p className="text-stone-600 text-sm mb-1">社群分享(限動/貼文) + 標註</p><div className="inline-block bg-[#b07d88] text-white px-3 py-1 rounded-full text-sm font-bold mt-1 transform -rotate-2">當次現折 $50</div></div></div>
+              </div>
+            </section>
+
+            <section id="policy" className="scroll-mt-24">
+              <div className="flex items-center gap-2 mb-6 justify-center"><h2 className="text-xl font-bold text-stone-600">Notice</h2></div>
+              <div className="bg-[#f0ecec] p-6 rounded-[2rem] relative">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-24 h-6 bg-[#dcb5bc]/60 rotate-2"></div>
+                <h3 className="text-center font-bold text-stone-600 mb-4">預約前請詳閱</h3>
+                <ul className="space-y-3 text-sm text-stone-600 leading-relaxed list-none">
+                  {[
+                    "預約請保留 <strong>2-2.5 小時</strong> 的操作時間，請勿趕時間。",
+                    "當天請素眼前來，若有眼妝需卸除將酌收 <strong class='text-red-400'>$100 清潔費</strong>。",
+                    "遲到超過 <strong>15分鐘</strong> 自動取消預約，不另行通知。",
+                    "若需更改預約請 <strong>2天前</strong> 告知，無故未到者將列入黑名單。",
+                    "眼睛近期有開刀、雷射或過敏發炎者，請事先告知。"
+                  ].map((text, i) => (
+                    <li key={i} className="flex gap-2"><span className="text-[#dcb5bc] font-bold">{i+1}.</span><span dangerouslySetInnerHTML={{__html: text}}></span></li>
+                  ))}
+                </ul>
+              </div>
+            </section>
+
+            <section id="qa" className="scroll-mt-24">
+              <div className="flex items-center gap-2 mb-6 justify-center"><h2 className="text-xl font-bold text-stone-600">Q & A</h2></div>
+              <div className="space-y-3">
+                <AccordionItem q="1. 翹睫管理/野生眉雕塑可以維持多久？" a="每個人的毛髮生長週期與保養習慣不同。一般來說，翹睫管理約可維持 4-8 週；野生眉雕塑約可維持 4-6 週。" />
+                <AccordionItem q="2. 睫毛管理跟角蛋白是一樣的嗎？" a="雖然原理相似，但使用的產品與技術大不同喔！傳統角蛋白較容易造成睫毛乾澀；Bianca 的「睫毛管理」使用溫和且含高保養成分的產品，在調整毛流捲度的同時，同步給予睫毛滋養修護，更加安全不傷睫毛。" />
+                <AccordionItem q="3. 睫毛管理後是不是睫毛比較脆弱易斷？" a="不會的。因為我們選用的產品含有角蛋白與保濕成分，操作過程溫和。只要操作正確，並不會導致睫毛變脆弱。反而因為毛流整齊了，視覺上會覺得睫毛更強韌健康。" />
+                <AccordionItem q="4. 為什麼一段時間後，睫毛會看起來凌亂，是受損嗎？" a="這不是受損喔！這是因為睫毛有「生長週期」。新長出來的直睫毛（原生睫毛）與原本做過捲翹管理的睫毛混在一起，交錯排列下才會看起來凌亂。這時候只要預約回來重新整理，就能恢復完美捲度囉！" />
+                <AccordionItem q="5. 睫毛管理可以讓睫毛變健康，變長嗎？" a="睫毛管理主要是透過調整毛流方向與捲度，讓睫毛在視覺上看起來「變長、變翹、變濃密」，就像刷了睫毛膏一樣有神。若希望原生睫毛本身變長、變粗壯，建議搭配居家使用的「睫毛增長液」勤勞保養喔！" />
+                <AccordionItem q="6. 回去後怎麼保養？" a="施作後 24 小時內請保持乾燥、勿碰水。日常洗臉後，建議使用冷風將睫毛吹乾，並使用睫毛梳順著毛流梳理；平時整理也可以搭配「睫毛雨衣」做造型，就能維持漂亮的捲度囉！" />
+              </div>
+            </section>
+
+            <section id="booking" className="scroll-mt-24 mb-12">
+               <div className="flex items-center gap-2 mb-6 justify-center"><h2 className="text-xl font-bold text-stone-600">Contact & Booking</h2></div>
+               <HandDrawnBorder className="mb-8">
+                <h3 className="text-[#b07d88] font-bold text-center mb-4 flex justify-center items-center gap-2"><Icons.Calendar size={20} /> 查看可預約時段</h3>
+                <p className="text-xs text-stone-500 text-center mb-4">點擊日期查看時段，點擊「預約」可直接複製訊息</p>
+                <CalendarView isAdmin={isAdmin} user={auth.currentUser} />
+              </HandDrawnBorder>
+              <HandDrawnBorder className="text-center !bg-[#fae8eb] !border-[#dcb5bc]">
+                <h3 className="text-[#b07d88] font-bold text-lg mb-4">♡ 簡單 3 步驟完成預約 ♡</h3>
+                <div className="text-left bg-white/60 rounded-xl p-4 mb-6 text-sm text-stone-600 space-y-2 inline-block w-full">
+                   <p><span className="font-bold text-[#b07d88]">1.</span> 查看上方日曆，挑選適合的時段</p>
+                   <p><span className="font-bold text-[#b07d88]">2.</span> 點擊該時段的「預約」按鈕，<span className="text-[#b07d88]">輸入手機號碼</span></p>
+                   <p><span className="font-bold text-[#b07d88]">3.</span> 跳轉至 LINE 貼上訊息，完成預約！</p>
+                   <p className="text-center font-bold text-[#b07d88] pt-2">✨ 系統會自動幫您計算新客優惠喔！</p>
+                </div>
+                <div className="flex flex-col gap-4">
+                  <a href="https://lin.ee/49zZehk" target="_blank" rel="noreferrer" className="flex items-center justify-center gap-3 bg-white text-stone-700 py-3 rounded-xl shadow-sm border-2 border-transparent hover:border-[#dcb5bc] transition group"><Icons.MessageCircle className="w-6 h-6 text-[#06c755]" /><span className="font-bold">點此加入 LINE 預約</span><span className="text-xs text-stone-400 font-normal">@bianca_eye</span></a>
+                  <a href="https://www.instagram.com/bianca_eye.studio?igsh=aTl5N21sdmdjNjQ0&utm_source=qr" target="_blank" rel="noreferrer" className="flex items-center justify-center gap-3 bg-white text-stone-700 py-3 rounded-xl shadow-sm border-2 border-transparent hover:border-[#dcb5bc] transition group"><Icons.Instagram className="w-6 h-6 text-[#E1306C]" /><span className="font-bold">Instagram 作品集</span></a>
+                </div>
+                <p className="mt-6 text-xs text-stone-500">* 訊息回覆時間：有空檔即回覆！ <br/>* 工作中、帶小孩，無法回覆，請耐心等候❤️</p>
+              </HandDrawnBorder>
+            </section>
+          </main>
+
+          <footer className="bg-stone-100 py-8 text-center text-stone-400 text-sm">
+            <DoodleEye className="w-6 h-4 mx-auto mb-2 opacity-50" />
+            <p>&copy; 2024 Bianca_eye.studio</p>
+            <p className="text-xs mt-1">Design for Beauty</p>
+            
+            {/* --- Footer 的登入區塊 --- */}
+            <div className="mt-8 pt-4 border-t border-stone-200 w-3/4 mx-auto">
+              {!isAdmin ? (
+                <button onClick={() => setShowAdminLogin(!showAdminLogin)} className="text-[10px] text-stone-300 hover:text-stone-500 transition">
+                  Manager Login
+                </button>
+              ) : (
+                <div className="flex flex-col gap-2 items-center">
+                   <span className="text-xs text-[#b07d88] font-bold">目前為管理員模式</span>
+                   <button onClick={handleAdminLogout} className="text-[10px] underline text-stone-400">登出 (Exit)</button>
+                </div>
+              )}
+
+              {showAdminLogin && !isAdmin && (
+                <div className="mt-4 bg-white p-4 rounded-xl border border-stone-200 shadow-sm max-w-[200px] mx-auto flex flex-col gap-2">
+                  <input 
+                    type="email" 
+                    placeholder="Email" 
+                    className="text-xs p-2 border rounded w-full outline-none focus:border-[#dcb5bc]" 
+                    value={adminEmailInput} 
+                    onChange={(e) => setAdminEmailInput(e.target.value)} 
+                  />
+                  <input 
+                    type="password" 
+                    placeholder="Password" 
+                    className="text-xs p-2 border rounded w-full outline-none focus:border-[#dcb5bc]" 
+                    value={adminPassword} 
+                    onChange={(e) => setAdminPassword(e.target.value)} 
+                  />
+                  <button onClick={handleAdminLogin} className="w-full py-2 bg-[#dcb5bc] text-white rounded-lg text-xs font-bold hover:opacity-90">
+                    登入
+                  </button>
+                </div>
+              )}
+            </div>
+            
+          </footer>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>

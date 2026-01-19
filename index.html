@@ -71,6 +71,110 @@
     const SquiggleLine = ({ className }) => (<svg viewBox="0 0 100 20" className={className} fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M5,10 Q25,20 50,10 T95,10" /></svg>);
     const HandDrawnBorder = ({ children, className = "" }) => (<div className={`border-2 border-stone-400 bg-white p-6 shadow-sm ${className}`} style={{ borderRadius: "255px 15px 225px 15px / 15px 225px 15px 255px" }}>{children}</div>);
 
+    // --- [新增] 預約查詢視窗 ---
+    const ReservationLookupModal = ({ isOpen, onClose }) => {
+      const [searchKey, setSearchKey] = React.useState('');
+      const [results, setResults] = React.useState([]);
+      const [hasSearched, setHasSearched] = React.useState(false);
+      const [loading, setLoading] = React.useState(false);
+
+      const handleSearch = async () => {
+        if (!searchKey) return;
+        setLoading(true);
+        setResults([]);
+        try {
+          // 為了確保不漏掉資料，且沒有後端索引支援，這邊直接拉取行程表進行比對 (適合小規模使用)
+          const querySnapshot = await getDocs(collection(db, SCHEDULE_COLLECTION));
+          const found = [];
+          const now = new Date();
+          const todayStr = now.toISOString().split('T')[0];
+
+          querySnapshot.forEach(doc => {
+            const date = doc.id;
+            // 只顯示今天及未來的預約
+            if (date < todayStr) return; 
+            const data = doc.data();
+            if (data.slots) {
+              data.slots.forEach(slot => {
+                if (slot.status === 'booked' && (slot.clientPhone === searchKey || slot.clientName === searchKey)) {
+                  found.push({ date, ...slot });
+                }
+              });
+            }
+          });
+          // 排序
+          found.sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+          setResults(found);
+          setHasSearched(true);
+        } catch (e) {
+          alert("查詢失敗，請稍後再試");
+          console.error(e);
+        }
+        setLoading(false);
+      };
+
+      if (!isOpen) return null;
+
+      return (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 modal-overlay" onClick={onClose}>
+           <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl border-2 border-stone-200 slide-up" onClick={e => e.stopPropagation()}>
+              <div className="flex justify-between items-center mb-4 border-b border-stone-100 pb-2">
+                <h3 className="font-bold text-stone-700 text-lg flex items-center gap-2"><Icons.Search size={20} /> 預約查詢</h3>
+                <button onClick={onClose}><Icons.X className="text-stone-400" /></button>
+              </div>
+              <div className="space-y-4">
+                 <div className="flex gap-2">
+                   <input
+                     type="text"
+                     placeholder="請輸入手機號碼或姓名"
+                     value={searchKey}
+                     onChange={e => setSearchKey(e.target.value)}
+                     className="flex-1 border border-stone-200 rounded-lg p-2 text-sm outline-none focus:border-[#dcb5bc]"
+                   />
+                   <button onClick={handleSearch} disabled={loading} className="bg-[#dcb5bc] text-white px-4 rounded-lg font-bold">
+                     {loading ? '...' : '查詢'}
+                   </button>
+                 </div>
+
+                 <div className="max-h-[50vh] overflow-y-auto no-scrollbar space-y-3">
+                    {hasSearched && results.length === 0 && <p className="text-center text-stone-400 text-sm">查無預約資料</p>}
+                    {results.map((res, idx) => (
+                      <div key={idx} className="bg-stone-50 border border-stone-200 rounded-xl p-3 relative overflow-hidden">
+                         <div className="absolute top-0 left-0 w-1 h-full bg-[#dcb5bc]"></div>
+                         <div className="pl-3">
+                           <div className="flex justify-between items-baseline mb-1">
+                             <span className="font-bold text-lg text-stone-700">{res.date}</span>
+                             <span className="font-bold text-[#b07d88] text-lg">{res.time}</span>
+                           </div>
+                           <div className="text-sm text-stone-600 mb-1 flex items-center gap-1"><Icons.MapPin size={12}/> {res.location}</div>
+                           <div className="text-xs text-stone-500 bg-white p-2 rounded-lg border border-stone-100">
+                             {/* 若舊資料沒有 services 欄位，顯示預設文字 */}
+                             {res.services || "預約項目 (舊資料未顯示詳細項目)"}
+                           </div>
+                         </div>
+                      </div>
+                    ))}
+                 </div>
+
+                 {/* [新增] 提醒標籤 */}
+                 <div className="bg-[#fff5f5] border border-red-100 p-3 rounded-xl flex items-start gap-3">
+                    <div className="bg-red-400 rounded-full p-1 text-white shrink-0 mt-0.5">
+                      <Icons.MessageCircle size={14} />
+                    </div>
+                    <div className="text-xs text-stone-600 leading-relaxed">
+                       <span className="font-bold text-red-400 block mb-0.5">需修改預約？</span>
+                       若需要更改預約內容或時間，請直接透過 LINE 訊息<span className="font-bold text-stone-700">蓁蓁</span>做修改！
+                    </div>
+                 </div>
+                 <a href="https://lin.ee/49zZehk" target="_blank" className="block w-full text-center bg-[#06c755] text-white py-2 rounded-xl text-sm font-bold shadow-sm hover:opacity-90">
+                   前往 LINE 官方帳號
+                 </a>
+              </div>
+           </div>
+        </div>
+      );
+    }
+
     // --- 黑名單管理視窗 ---
     const BlacklistManagerModal = ({ isOpen, onClose, initialTab }) => {
       const [tab, setTab] = React.useState('list'); 
@@ -338,6 +442,8 @@
             slots[targetSlotIndex].status = 'booked';
             slots[targetSlotIndex].clientName = clientName;
             slots[targetSlotIndex].clientPhone = clientPhone;
+            // [重要] 將服務項目文字存入 DB，方便查詢
+            slots[targetSlotIndex].services = items.join(', ');
 
             transaction.update(scheduleRef, { slots: slots });
 
@@ -771,28 +877,25 @@
     function App() {
       const [isMenuOpen, setIsMenuOpen] = React.useState(false);
       const [activeTab, setActiveTab] = React.useState('price');
-      // --- 修改開始：新的狀態管理 ---
       const [isAdmin, setIsAdmin] = React.useState(false);
       const [showAdminLogin, setShowAdminLogin] = React.useState(false);
-      const [adminEmailInput, setAdminEmailInput] = React.useState(''); // 新增 Email 輸入
+      const [adminEmailInput, setAdminEmailInput] = React.useState(''); 
       const [adminPassword, setAdminPassword] = React.useState('');
       const [loadingAuth, setLoadingAuth] = React.useState(true);
+      // [新增] 預約查詢視窗狀態
+      const [isLookupOpen, setIsLookupOpen] = React.useState(false);
       
-      // 設定您的管理員 Email (必須跟 Firebase Console 設的一樣)
       const ADMIN_EMAIL = "bianca.studio2026@gmail.com"; 
 
       React.useEffect(() => {
-        // 監聽登入狀態改變
         const unsubscribe = onAuthStateChanged(auth, (user) => {
           if (user) {
-            // 如果登入的使用者 Email 等於您的管理員 Email，就是管理員模式
             if (user.email === ADMIN_EMAIL) {
               setIsAdmin(true);
             } else {
               setIsAdmin(false);
             }
           } else {
-            // 如果沒有使用者 (例如剛登出)，自動執行匿名登入，確保客人功能正常
             signInAnonymously(auth).catch(console.error);
             setIsAdmin(false);
           }
@@ -801,13 +904,12 @@
         return () => unsubscribe();
       }, []);
 
-      // 處理管理員登入
       const handleAdminLogin = async () => {
         if (!adminEmailInput || !adminPassword) return alert("請輸入帳號密碼");
         try {
           await signInWithEmailAndPassword(auth, adminEmailInput, adminPassword);
           setShowAdminLogin(false);
-          setAdminPassword(''); // 清空密碼欄位
+          setAdminPassword(''); 
           alert("管理員登入成功！");
         } catch (error) {
           console.error(error);
@@ -815,14 +917,18 @@
         }
       };
 
-      // 處理登出 (變回一般客人模式)
       const handleAdminLogout = async () => {
         await signOut(auth);
         alert("已登出管理模式");
       };
-      // --- 修改結束 ---
 
       const scrollToSection = (id) => { setActiveTab(id); setIsMenuOpen(false); const element = document.getElementById(id); if (element) element.scrollIntoView({ behavior: 'smooth' }); };
+
+      // [新增] 開啟查詢視窗
+      const openLookup = () => {
+        setIsLookupOpen(true);
+        setIsMenuOpen(false); // 關閉選單
+      };
 
       return (
         <div className="min-h-screen bg-[#fdfbf7] font-sans selection:bg-pink-100 pb-20">
@@ -833,7 +939,19 @@
               </div>
               <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="p-2 text-stone-600 hover:bg-stone-100 rounded-full transition">{isMenuOpen ? <Icons.X size={24} /> : <Icons.Menu size={24} />}</button>
             </div>
-            {isMenuOpen && <div className="absolute top-16 left-0 right-0 bg-white border-b-2 border-stone-200 shadow-lg p-4 animate-in slide-in-from-top-2"><div className="flex flex-col gap-4 items-center">{[{id:'price',label:'價目表'},{id:'policy',label:'預約須知'},{id:'qa',label:'Q&A'},{id:'booking',label:'預約方式'}].map(item => <button key={item.id} onClick={() => scrollToSection(item.id)} className={`text-lg font-medium tracking-wide w-full py-2 text-center rounded-xl transition ${activeTab === item.id ? 'bg-stone-100 text-[#b07d88]' : 'text-stone-500'}`}>{item.label}</button>)}</div></div>}
+            {isMenuOpen && (
+              <div className="absolute top-16 left-0 right-0 bg-white border-b-2 border-stone-200 shadow-lg p-4 animate-in slide-in-from-top-2">
+                <div className="flex flex-col gap-4 items-center">
+                  {[{id:'price',label:'價目表'},{id:'policy',label:'預約須知'},{id:'qa',label:'Q&A'},{id:'booking',label:'預約方式'}].map(item => (
+                    <button key={item.id} onClick={() => scrollToSection(item.id)} className={`text-lg font-medium tracking-wide w-full py-2 text-center rounded-xl transition ${activeTab === item.id ? 'bg-stone-100 text-[#b07d88]' : 'text-stone-500'}`}>{item.label}</button>
+                  ))}
+                  {/* [新增] 預約查詢按鈕 */}
+                  <button onClick={openLookup} className="text-lg font-bold tracking-wide w-full py-2 text-center rounded-xl transition text-stone-600 border-2 border-[#dcb5bc] bg-[#fff5f7]">
+                    <span className="flex items-center justify-center gap-2"><Icons.Search size={18} /> 預約查詢</span>
+                  </button>
+                </div>
+              </div>
+            )}
           </nav>
 
           <header className="pt-28 pb-12 px-4 text-center max-w-md mx-auto">
@@ -922,6 +1040,9 @@
               </HandDrawnBorder>
             </section>
           </main>
+
+          {/* [新增] 渲染預約查詢視窗 */}
+          <ReservationLookupModal isOpen={isLookupOpen} onClose={() => setIsLookupOpen(false)} />
 
           <footer className="bg-stone-100 py-8 text-center text-stone-400 text-sm">
             <DoodleEye className="w-6 h-4 mx-auto mb-2 opacity-50" />

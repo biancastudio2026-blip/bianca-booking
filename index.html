@@ -630,39 +630,6 @@
         setShowBlacklistManager(true);
       };
 
-      // --- [新增] 加入行事曆功能 ---
-      const addToCalendar = (slot) => {
-        // 設定開始與結束時間 (預設 2.5 小時)
-        const startTime = slot.date.replace(/-/g, '') + 'T' + slot.time.replace(':', '') + '00';
-        // 簡單計算結束時間：先轉成 Date 物件
-        const dateObj = new Date(`${slot.date}T${slot.time}:00`);
-        dateObj.setMinutes(dateObj.getMinutes() + 150); // +2.5小時
-        const endHours = String(dateObj.getHours()).padStart(2, '0');
-        const endMinutes = String(dateObj.getMinutes()).padStart(2, '0');
-        const endTime = slot.date.replace(/-/g, '') + 'T' + endHours + endMinutes + '00';
-
-        const icsContent = [
-          'BEGIN:VCALENDAR',
-          'VERSION:2.0',
-          'BEGIN:VEVENT',
-          `SUMMARY:預約: ${slot.clientName || '客戶'}`,
-          `DTSTART:${startTime}`,
-          `DTEND:${endTime}`,
-          `LOCATION:${slot.location}`,
-          `DESCRIPTION:電話: ${slot.clientPhone || ''} \\n項目: ${slot.services || ''}`,
-          'END:VEVENT',
-          'END:VCALENDAR'
-        ].join('\n');
-
-        const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
-        const link = document.createElement('a');
-        link.href = window.URL.createObjectURL(blob);
-        link.setAttribute('download', `booking_${slot.date}_${slot.time}.ics`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      };
-
       return (
         <div className="mb-6 bg-white p-3 rounded-xl border border-stone-200 shadow-sm">
           <div className="flex gap-2 mb-4 border-b border-stone-100 pb-2">
@@ -782,34 +749,57 @@
         window.location.href = "https://lin.ee/49zZehk";
       };
 
-      // [新增] 加入行事曆 (直接在組件內定義，方便使用)
-      const addToCalendar = (slot) => {
-        // ... (邏輯同上，但為了讓 AdminPanel 也能用，其實可以獨立，不過這裡我們直接放在 CalendarView 內使用)
-        // 注意：AdminPanel 是子組件，如果要共用可以傳遞 props，但這裡簡化直接寫在 CalendarView 的列表裡
-        const startTime = slot.date.replace(/-/g, '') + 'T' + slot.time.replace(':', '') + '00';
+      // [新增/修改] 加入行事曆 (Web Share API 版)
+      const addToCalendar = async (slot) => {
+        const startStr = slot.date.replace(/-/g, '') + 'T' + slot.time.replace(':', '') + '00';
+        
         const dateObj = new Date(`${slot.date}T${slot.time}:00`);
-        dateObj.setMinutes(dateObj.getMinutes() + 150); 
+        dateObj.setMinutes(dateObj.getMinutes() + 150); // +2.5 hours
         const endHours = String(dateObj.getHours()).padStart(2, '0');
         const endMinutes = String(dateObj.getMinutes()).padStart(2, '0');
-        const endTime = slot.date.replace(/-/g, '') + 'T' + endHours + endMinutes + '00';
+        const endStr = slot.date.replace(/-/g, '') + 'T' + endHours + endMinutes + '00';
 
+        // 使用 CRLF 換行符號，提高相容性
         const icsContent = [
           'BEGIN:VCALENDAR',
           'VERSION:2.0',
+          'PRODID:-//Bianca_eye.studio//Booking//ZH',
+          'CALSCALE:GREGORIAN',
+          'METHOD:PUBLISH',
           'BEGIN:VEVENT',
           `SUMMARY:預約: ${slot.clientName || '客戶'}`,
-          `DTSTART:${startTime}`,
-          `DTEND:${endTime}`,
+          `DTSTART:${startStr}`,
+          `DTEND:${endStr}`,
           `LOCATION:${slot.location}`,
           `DESCRIPTION:電話: ${slot.clientPhone || ''} \\n項目: ${slot.services || ''}`,
+          'STATUS:CONFIRMED',
           'END:VEVENT',
           'END:VCALENDAR'
-        ].join('\n');
+        ].join('\r\n');
 
+        const fileName = 'booking.ics';
+        const file = new File([icsContent], fileName, { type: 'text/calendar' });
+
+        // 1. 嘗試使用 Web Share API (手機端最佳體驗)
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            try {
+                await navigator.share({
+                    files: [file],
+                    title: '加入預約到行事曆',
+                });
+                return; // 若成功分享則結束
+            } catch (err) {
+                console.log('Share API canceled or failed', err);
+                // 若用戶取消或失敗，繼續執行下方的下載 fallback
+                if (err.name === 'AbortError') return;
+            }
+        }
+
+        // 2. Fallback: Blob 下載 (電腦版或不支援 Share API 的手機)
         const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
         const link = document.createElement('a');
         link.href = window.URL.createObjectURL(blob);
-        link.setAttribute('download', `booking_${slot.date}_${slot.time}.ics`);
+        link.setAttribute('download', fileName);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -887,7 +877,7 @@
              </div>
            </div>
            
-           {/* 預約列表 (含提醒功能 + [新增] 加入行事曆功能) */}
+           {/* 預約列表 (含提醒功能 + [修改] 加入行事曆功能) */}
            {isAdmin && bookedList.length > 0 && (
              <div className="mt-8 border-t-2 border-dashed border-stone-300 pt-6">
                <h3 className="text-center font-bold text-stone-600 mb-4 flex justify-center gap-2">已預約列表 (待提醒)</h3>

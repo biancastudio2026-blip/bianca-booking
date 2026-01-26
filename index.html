@@ -630,6 +630,61 @@
         setShowBlacklistManager(true);
       };
 
+      // --- [修改] 加入行事曆功能：移除 navigator.share，只使用下載 ---
+      const addToCalendar = (slot) => {
+        const startStr = slot.date.replace(/-/g, '') + 'T' + slot.time.replace(':', '') + '00';
+        
+        const dateObj = new Date(`${slot.date}T${slot.time}:00`);
+        dateObj.setMinutes(dateObj.getMinutes() + 150); // +2.5 hours
+        const endHours = String(dateObj.getHours()).padStart(2, '0');
+        const endMinutes = String(dateObj.getMinutes()).padStart(2, '0');
+        const endStr = slot.date.replace(/-/g, '') + 'T' + endHours + endMinutes + '00';
+
+        const icsContent = [
+          'BEGIN:VCALENDAR',
+          'VERSION:2.0',
+          'PRODID:-//Bianca_eye.studio//Booking//ZH',
+          'CALSCALE:GREGORIAN',
+          'METHOD:PUBLISH',
+          'BEGIN:VEVENT',
+          `SUMMARY:預約: ${slot.clientName || '客戶'}`,
+          `DTSTART:${startStr}`,
+          `DTEND:${endStr}`,
+          `LOCATION:${slot.location}`,
+          `DESCRIPTION:電話: ${slot.clientPhone || ''} \\n項目: ${slot.services || ''}`,
+          'STATUS:CONFIRMED',
+          'END:VEVENT',
+          'END:VCALENDAR'
+        ].join('\r\n');
+
+        const fileName = 'booking.ics';
+        // 直接建立 Blob 並下載，避開 navigator.share
+        const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+        const link = document.createElement('a');
+        link.href = window.URL.createObjectURL(blob);
+        link.setAttribute('download', fileName);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      };
+
+      // [新增] 加入 Google 行事曆
+      const addToGoogleCalendar = (slot) => {
+        const startStr = slot.date.replace(/-/g, '') + 'T' + slot.time.replace(':', '') + '00';
+        const dateObj = new Date(`${slot.date}T${slot.time}:00`);
+        dateObj.setMinutes(dateObj.getMinutes() + 150);
+        const endHours = String(dateObj.getHours()).padStart(2, '0');
+        const endMinutes = String(dateObj.getMinutes()).padStart(2, '0');
+        const endStr = slot.date.replace(/-/g, '') + 'T' + endHours + endMinutes + '00';
+        
+        const text = encodeURIComponent(`預約: ${slot.clientName || '客戶'}`);
+        const details = encodeURIComponent(`電話: ${slot.clientPhone || ''}\n項目: ${slot.services || ''}`);
+        const location = encodeURIComponent(slot.location || '');
+        
+        const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${text}&dates=${startStr}/${endStr}&details=${details}&location=${location}`;
+        window.open(url, '_blank');
+      };
+
       return (
         <div className="mb-6 bg-white p-3 rounded-xl border border-stone-200 shadow-sm">
           <div className="flex gap-2 mb-4 border-b border-stone-100 pb-2">
@@ -749,17 +804,16 @@
         window.location.href = "https://lin.ee/49zZehk";
       };
 
-      // [新增/修改] 加入行事曆 (Web Share API 版)
-      const addToCalendar = async (slot) => {
+      // [修改] 加入行事曆 (移除 share API，改用直接下載)
+      const addToCalendar = (slot) => {
         const startStr = slot.date.replace(/-/g, '') + 'T' + slot.time.replace(':', '') + '00';
         
         const dateObj = new Date(`${slot.date}T${slot.time}:00`);
-        dateObj.setMinutes(dateObj.getMinutes() + 150); // +2.5 hours
+        dateObj.setMinutes(dateObj.getMinutes() + 150); 
         const endHours = String(dateObj.getHours()).padStart(2, '0');
         const endMinutes = String(dateObj.getMinutes()).padStart(2, '0');
         const endStr = slot.date.replace(/-/g, '') + 'T' + endHours + endMinutes + '00';
 
-        // 使用 CRLF 換行符號，提高相容性
         const icsContent = [
           'BEGIN:VCALENDAR',
           'VERSION:2.0',
@@ -778,24 +832,7 @@
         ].join('\r\n');
 
         const fileName = 'booking.ics';
-        const file = new File([icsContent], fileName, { type: 'text/calendar' });
-
-        // 1. 嘗試使用 Web Share API (手機端最佳體驗)
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-            try {
-                await navigator.share({
-                    files: [file],
-                    title: '加入預約到行事曆',
-                });
-                return; // 若成功分享則結束
-            } catch (err) {
-                console.log('Share API canceled or failed', err);
-                // 若用戶取消或失敗，繼續執行下方的下載 fallback
-                if (err.name === 'AbortError') return;
-            }
-        }
-
-        // 2. Fallback: Blob 下載 (電腦版或不支援 Share API 的手機)
+        // 直接下載，觸發 iOS Safari 內建的行事曆開啟功能
         const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
         const link = document.createElement('a');
         link.href = window.URL.createObjectURL(blob);
@@ -803,6 +840,23 @@
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+      };
+
+      // [新增] 加入 Google 行事曆
+      const addToGoogleCalendar = (slot) => {
+        const startStr = slot.date.replace(/-/g, '') + 'T' + slot.time.replace(':', '') + '00';
+        const dateObj = new Date(`${slot.date}T${slot.time}:00`);
+        dateObj.setMinutes(dateObj.getMinutes() + 150);
+        const endHours = String(dateObj.getHours()).padStart(2, '0');
+        const endMinutes = String(dateObj.getMinutes()).padStart(2, '0');
+        const endStr = slot.date.replace(/-/g, '') + 'T' + endHours + endMinutes + '00';
+        
+        const text = encodeURIComponent(`預約: ${slot.clientName || '客戶'}`);
+        const details = encodeURIComponent(`電話: ${slot.clientPhone || ''}\n項目: ${slot.services || ''}`);
+        const location = encodeURIComponent(slot.location || '');
+        
+        const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${text}&dates=${startStr}/${endStr}&details=${details}&location=${location}`;
+        window.open(url, '_blank');
       };
 
       return (
@@ -877,7 +931,7 @@
              </div>
            </div>
            
-           {/* 預約列表 (含提醒功能 + [修改] 加入行事曆功能) */}
+           {/* 預約列表 (含提醒功能 + 加入行事曆功能) */}
            {isAdmin && bookedList.length > 0 && (
              <div className="mt-8 border-t-2 border-dashed border-stone-300 pt-6">
                <h3 className="text-center font-bold text-stone-600 mb-4 flex justify-center gap-2">已預約列表 (待提醒)</h3>
@@ -889,11 +943,14 @@
                        <div className="text-xs text-stone-500">{slot.location} | 客：{slot.clientName}</div>
                      </div>
                      <div className="flex gap-2">
-                       <button onClick={() => addToCalendar(slot)} className="bg-yellow-400 text-white px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-1">
-                         <Icons.Calendar size={12} /> 加入行事曆
+                       <button onClick={() => addToCalendar(slot)} className="bg-yellow-400 text-white px-2 py-1 rounded-lg text-xs font-bold flex items-center gap-1" title="加入 Apple/預設行事曆">
+                         <Icons.Calendar size={12} /> 手機
                        </button>
-                       <button onClick={() => sendLineReminder(slot)} className="bg-[#06c755] text-white px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-1">
-                         <Icons.Send size={12} /> LINE 提醒
+                       <button onClick={() => addToGoogleCalendar(slot)} className="bg-blue-500 text-white px-2 py-1 rounded-lg text-xs font-bold flex items-center gap-1" title="加入 Google 行事曆">
+                         <Icons.Calendar size={12} /> Google
+                       </button>
+                       <button onClick={() => sendLineReminder(slot)} className="bg-[#06c755] text-white px-2 py-1 rounded-lg text-xs font-bold flex items-center gap-1">
+                         <Icons.Send size={12} /> LINE
                        </button>
                      </div>
                    </div>

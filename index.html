@@ -4,10 +4,18 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Bianca_eye.studio 預約系統</title>
+  
   <script src="https://cdn.tailwindcss.com"></script>
+  
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
   <style>
     body { font-family: "Microsoft JhengHei", sans-serif; background-color: #fdfbf7; }
     .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -19,11 +27,8 @@
 <body>
   <div id="root"></div>
 
-  <script type="text/babel" data-type="module">
-    // --- import 區塊 ---
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getAuth, signInAnonymously, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-    import { getFirestore, collection, doc, setDoc, getDoc, updateDoc, arrayUnion, arrayRemove, onSnapshot, runTransaction, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  <script type="text/babel">
+    const { useState, useEffect } = React;
 
     // --- Firebase 設定 ---
     const firebaseConfig = {
@@ -36,13 +41,17 @@
       measurementId: "G-6CTBV02QR4"
     };
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
+    // [修改] 初始化 Firebase (使用全域變數)
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
     const SCHEDULE_COLLECTION = 'bianca_schedule_data';
     const CLIENTS_COLLECTION = 'bianca_clients_data';
 
-    // --- 圖示 (全部改回內建 SVG，無需外部圖檔) ---
+    // --- 圖示 (手繪風格 SVG) ---
     const Icons = {
       Menu: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>,
       X: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 18 18"/></svg>,
@@ -65,8 +74,9 @@
       Send: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>,
       UserPlus: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" x2="20" y1="8" y2="14"/><line x1="23" x2="17" y1="11" y2="11"/></svg>,
       Settings: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>,
-      // [修改] 內建 SVG 手繪風符號 (無須圖檔，保證可顯示)
+      // 手繪風飛機 (SVG)
       PlaneDoodle: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`w-8 h-8 -rotate-45 ${p.className || ''}`}><path d="M22 2 11 13"/><path d="m22 2-7 20-4-9-9-4 20-7Z"/></svg>,
+      // 手繪風筆 (SVG)
       PenDoodle: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`w-8 h-8 ${p.className || ''}`}><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>
     };
 
@@ -74,19 +84,18 @@
     const SquiggleLine = ({ className }) => (<svg viewBox="0 0 100 20" className={className} fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M5,10 Q25,20 50,10 T95,10" /></svg>);
     const HandDrawnBorder = ({ children, className = "" }) => (<div className={`border-2 border-stone-400 bg-white p-6 shadow-sm ${className}`} style={{ borderRadius: "255px 15px 225px 15px / 15px 225px 15px 255px" }}>{children}</div>);
 
-    // --- [新增] 預約查詢視窗 ---
     const ReservationLookupModal = ({ isOpen, onClose }) => {
-      const [searchKey, setSearchKey] = React.useState('');
-      const [results, setResults] = React.useState([]);
-      const [hasSearched, setHasSearched] = React.useState(false);
-      const [loading, setLoading] = React.useState(false);
+      const [searchKey, setSearchKey] = useState('');
+      const [results, setResults] = useState([]);
+      const [hasSearched, setHasSearched] = useState(false);
+      const [loading, setLoading] = useState(false);
 
       const handleSearch = async () => {
         if (!searchKey) return;
         setLoading(true);
         setResults([]);
         try {
-          const querySnapshot = await getDocs(collection(db, SCHEDULE_COLLECTION));
+          const querySnapshot = await db.collection(SCHEDULE_COLLECTION).get();
           const found = [];
           const now = new Date();
           const todayStr = now.toISOString().split('T')[0];
@@ -173,17 +182,16 @@
       );
     }
 
-    // --- 黑名單管理視窗 ---
     const BlacklistManagerModal = ({ isOpen, onClose, initialTab }) => {
-      const [tab, setTab] = React.useState('list'); 
-      const [blacklistClients, setBlacklistClients] = React.useState([]);
-      const [loading, setLoading] = React.useState(false);
+      const [tab, setTab] = useState('list'); 
+      const [blacklistClients, setBlacklistClients] = useState([]);
+      const [loading, setLoading] = useState(false);
       
-      const [newPhone, setNewPhone] = React.useState('');
-      const [newName, setNewName] = React.useState('');
-      const [newNote, setNewNote] = React.useState('');
+      const [newPhone, setNewPhone] = useState('');
+      const [newName, setNewName] = useState('');
+      const [newNote, setNewNote] = useState('');
 
-      React.useEffect(() => {
+      useEffect(() => {
         if (isOpen) {
           setTab(initialTab || 'list');
           fetchBlacklist();
@@ -193,10 +201,9 @@
       const fetchBlacklist = async () => {
         setLoading(true);
         try {
-          const q = query(collection(db, CLIENTS_COLLECTION), where("blacklist", "==", true));
-          const querySnapshot = await getDocs(q);
+          const snapshot = await db.collection(CLIENTS_COLLECTION).where("blacklist", "==", true).get();
           const list = [];
-          querySnapshot.forEach((doc) => {
+          snapshot.forEach((doc) => {
             list.push(doc.data());
           });
           setBlacklistClients(list);
@@ -210,8 +217,7 @@
       const handleRemoveBlacklist = async (phone) => {
         if (!confirm(`確定要將 ${phone} 移出黑名單嗎？`)) return;
         try {
-          const docRef = doc(db, CLIENTS_COLLECTION, phone);
-          await updateDoc(docRef, { blacklist: false });
+          await db.collection(CLIENTS_COLLECTION).doc(phone).update({ blacklist: false });
           setBlacklistClients(prev => prev.filter(c => c.phone !== phone));
           alert("已移除");
         } catch (e) {
@@ -224,8 +230,7 @@
         if (!newName) return alert("請輸入姓名");
 
         try {
-          const docRef = doc(db, CLIENTS_COLLECTION, newPhone);
-          await setDoc(docRef, {
+          await db.collection(CLIENTS_COLLECTION).doc(newPhone).set({
             phone: newPhone,
             name: newName,
             notes: newNote,
@@ -292,20 +297,19 @@
       );
     };
 
-    // --- 客戶與預約邏輯 ---
     const BookingModal = ({ isOpen, onClose, slot, dateKey }) => {
-      const [step, setStep] = React.useState(1);
-      const [clientPhone, setClientPhone] = React.useState('');
-      const [clientData, setClientData] = React.useState(null); 
-      const [loading, setLoading] = React.useState(false);
-      const [clientName, setClientName] = React.useState('');
+      const [step, setStep] = useState(1);
+      const [clientPhone, setClientPhone] = useState('');
+      const [clientData, setClientData] = useState(null); 
+      const [loading, setLoading] = useState(false);
+      const [clientName, setClientName] = useState('');
       
-      const [services, setServices] = React.useState({
+      const [services, setServices] = useState({
         upper: false, upperTint: false,
         lower: false, lowerTint: false, brow: false
       });
 
-      React.useEffect(() => {
+      useEffect(() => {
         if(isOpen) {
           setStep(1); setClientPhone(''); setClientData(null);
           setClientName(''); 
@@ -320,10 +324,10 @@
         
         setLoading(true);
         try {
-          const docRef = doc(db, CLIENTS_COLLECTION, clientPhone);
-          const docSnap = await getDoc(docRef);
+          const docRef = db.collection(CLIENTS_COLLECTION).doc(clientPhone);
+          const docSnap = await docRef.get();
           
-          if (docSnap.exists()) {
+          if (docSnap.exists) {
             const data = docSnap.data();
             if (data.blacklist) {
               alert("您有預約未到的紀錄, 請直接利用官方Line與店家聯繫~");
@@ -355,13 +359,12 @@
         tint_lower: 100
       };
 
-      // [新增] 會員價格表
       const MEMBER_PRICES = {
         upper: 850,
         lower_single: 400,
         lower_combo: 250,
         brow: 850,
-        combo_discount: 100 // 850+850=1700, 耀眼組合=1600, so -100
+        combo_discount: 100
       };
 
       let total = 0;
@@ -384,25 +387,19 @@
         total -= tintDiscount;
       }
 
-      // [新增] 會員價格計算邏輯
       let memberTotal = 0;
       if (services.upper) memberTotal += MEMBER_PRICES.upper;
       if (services.brow) memberTotal += MEMBER_PRICES.brow;
-      // 耀眼組合 (任一睫毛+眉毛折100 -> 比照一般邏輯但基數不同)
       if ((services.upper || services.lower) && services.brow) memberTotal -= MEMBER_PRICES.combo_discount;
       
       if (services.lower) {
           memberTotal += (services.upper ? MEMBER_PRICES.lower_combo : MEMBER_PRICES.lower_single);
       }
       
-      // 濃黑養護 (會員價格與一般相同)
       if (services.upperTint && services.upper) memberTotal += PRICES.tint_upper;
       if (services.lowerTint && services.lower) memberTotal += PRICES.tint_lower;
-      // 上下濃黑合購 (會員折50)
       if (services.upperTint && services.lowerTint && services.upper && services.lower) memberTotal -= 50;
-      // 上下睫毛合購 (會員折200, 參考一般邏輯)
       if (services.upper && services.lower) memberTotal -= 200;
-
 
       const handleConfirm = async () => {
         if (!clientName) return alert("請填寫姓名以便聯繫");
@@ -442,11 +439,11 @@
         }
 
         try {
-          await runTransaction(db, async (transaction) => {
-            const scheduleRef = doc(db, SCHEDULE_COLLECTION, dateKey);
+          await db.runTransaction(async (transaction) => {
+            const scheduleRef = db.collection(SCHEDULE_COLLECTION).doc(dateKey);
             const scheduleDoc = await transaction.get(scheduleRef);
             
-            if (!scheduleDoc.exists()) throw new Error("行程表資料不存在");
+            if (!scheduleDoc.exists) throw new Error("行程表資料不存在");
 
             const slots = scheduleDoc.data().slots || [];
             
@@ -468,12 +465,11 @@
             slots[targetSlotIndex].status = 'booked';
             slots[targetSlotIndex].clientName = clientName;
             slots[targetSlotIndex].clientPhone = clientPhone;
-            // [重要] 將服務項目文字存入 DB，方便查詢
             slots[targetSlotIndex].services = items.join(', ');
 
             transaction.update(scheduleRef, { slots: slots });
 
-            const clientRef = doc(db, CLIENTS_COLLECTION, clientPhone);
+            const clientRef = db.collection(CLIENTS_COLLECTION).doc(clientPhone);
             transaction.set(clientRef, {
               phone: clientPhone,
               name: clientName,
@@ -596,13 +592,10 @@
                     <span className="text-stone-600 font-bold text-sm">預估金額</span>
                     <span className="text-[#b07d88] font-bold text-xl">${total}</span>
                   </div>
-                  {/* [新增] 會員價格顯示 */}
                   <div className="text-right border-t border-dashed border-[#dcb5bc]/30 pt-1 mt-1">
                     <span className="text-xs text-stone-500 mr-2">(儲值會員預估扣款)</span>
                     <span className="text-sm font-bold text-[#b07d88]">${memberTotal}</span>
                   </div>
-
-                  {/* 優惠提示 */}
                   {comboDiscount > 0 && <span className="text-xs text-[#b07d88] text-right">已扣除睫毛管理與野生眉合購優惠 -$100</span>}
                   {(services.upper && services.lower) && <span className="text-xs text-[#b07d88] text-right">已扣除上/ 下睫毛管理合購優惠 -$200</span>}
                   {tintDiscount > 0 && <span className="text-xs text-[#b07d88] text-right">已扣除濃黑養護合購優惠 -$50</span>}
@@ -618,24 +611,19 @@
       );
     };
 
-    // --- 管理者後台組件 (維持不變) ---
     const AdminPanel = ({ selectedDateKey, newTime, setNewTime, newLocation, setNewLocation, addSlot }) => {
-      // ... (後台程式碼保持不變，略)
-      // 為了篇幅，這裡省略後台程式碼，請直接保留您上一版完整的 AdminPanel
-      // 如果您需要我再次貼上完整的 AdminPanel，請告知
-      // 但根據指示，我需要提供"完整"程式碼，所以我還是會貼上完整的 AdminPanel
-      const [view, setView] = React.useState('booking'); 
-      const [phoneSearch, setPhoneSearch] = React.useState('');
-      const [searchResult, setSearchResult] = React.useState(null);
-      const [showBlacklistManager, setShowBlacklistManager] = React.useState(false);
-      const [blacklistManagerTab, setBlacklistManagerTab] = React.useState('list');
+      const [view, setView] = useState('booking'); 
+      const [phoneSearch, setPhoneSearch] = useState('');
+      const [searchResult, setSearchResult] = useState(null);
+      const [showBlacklistManager, setShowBlacklistManager] = useState(false);
+      const [blacklistManagerTab, setBlacklistManagerTab] = useState('list');
 
       const searchClient = async () => {
         if(!phoneSearch) return;
         try {
-          const docRef = doc(db, CLIENTS_COLLECTION, phoneSearch);
-          const docSnap = await getDoc(docRef);
-          if (docSnap.exists()) setSearchResult(docSnap.data());
+          const docRef = db.collection(CLIENTS_COLLECTION).doc(phoneSearch);
+          const docSnap = await docRef.get();
+          if (docSnap.exists) setSearchResult(docSnap.data());
           else setSearchResult('not_found');
         } catch(e) { alert(e.message); }
       };
@@ -643,7 +631,7 @@
       const toggleBlacklist = async () => {
         if(!searchResult || searchResult === 'not_found') return;
         try {
-          await updateDoc(doc(db, CLIENTS_COLLECTION, searchResult.phone), {
+          await db.collection(CLIENTS_COLLECTION).doc(searchResult.phone).update({
             blacklist: !searchResult.blacklist
           });
           setSearchResult(prev => ({...prev, blacklist: !prev.blacklist}));
@@ -652,7 +640,7 @@
 
       const saveNote = async (note) => {
         try {
-          await updateDoc(doc(db, CLIENTS_COLLECTION, searchResult.phone), { notes: note });
+          await db.collection(CLIENTS_COLLECTION).doc(searchResult.phone).update({ notes: note });
           alert("備註已儲存");
         } catch(e) { alert(e.message); }
       };
@@ -676,7 +664,7 @@
           status: 'open'
         }));
         try {
-          await setDoc(doc(db, SCHEDULE_COLLECTION, selectedDateKey), { slots: slots });
+          await db.collection(SCHEDULE_COLLECTION).doc(selectedDateKey).set({ slots: slots });
           alert("淡水班表已設定完成");
         } catch (e) { alert(e.message); }
       };
@@ -691,7 +679,7 @@
           type: 'zhubei_notice'
         }];
         try {
-          await setDoc(doc(db, SCHEDULE_COLLECTION, selectedDateKey), { slots: slots });
+          await db.collection(SCHEDULE_COLLECTION).doc(selectedDateKey).set({ slots: slots });
           alert("竹北模式已設定");
         } catch (e) { alert(e.message); }
       };
@@ -713,7 +701,7 @@
         }];
 
         try {
-          await setDoc(doc(db, SCHEDULE_COLLECTION, selectedDateKey), { slots: slots });
+          await db.collection(SCHEDULE_COLLECTION).doc(selectedDateKey).set({ slots: slots });
           alert(`已設定為 ${label}`);
         } catch (e) { alert(e.message); }
       };
@@ -788,19 +776,16 @@
       );
     };
 
-    // --- 日曆組件 ---
     const CalendarView = ({ isAdmin, user }) => {
-        // ... (CalendarView 保持之前的功能，僅引用了新的 BookingModal) ...
-        // 為了完整性，這裡必須包含 CalendarView 的完整代碼
-      const [currentDate, setCurrentDate] = React.useState(new Date());
-      const [selectedDate, setSelectedDate] = React.useState(new Date());
-      const [availability, setAvailability] = React.useState({});
-      const [bookedList, setBookedList] = React.useState([]);
-      const [loading, setLoading] = React.useState(true);
-      const [newTime, setNewTime] = React.useState('10:00');
-      const [newLocation, setNewLocation] = React.useState('淡水自宅'); 
-      const [modalOpen, setModalOpen] = React.useState(false);
-      const [selectedSlot, setSelectedSlot] = React.useState(null);
+      const [currentDate, setCurrentDate] = useState(new Date());
+      const [selectedDate, setSelectedDate] = useState(new Date());
+      const [availability, setAvailability] = useState({});
+      const [bookedList, setBookedList] = useState([]);
+      const [loading, setLoading] = useState(true);
+      const [newTime, setNewTime] = useState('10:00');
+      const [newLocation, setNewLocation] = useState('淡水自宅'); 
+      const [modalOpen, setModalOpen] = useState(false);
+      const [selectedSlot, setSelectedSlot] = useState(null);
       const locationColors = { '新竹地區到府': 'bg-red-400', '新竹到府地區': 'bg-red-400', '竹北自宅': 'bg-yellow-400', '淡水自宅': 'bg-green-400' };
       const year = currentDate.getFullYear();
       const month = currentDate.getMonth();
@@ -810,8 +795,8 @@
       const formatDateKey = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
       const selectedDateKey = formatDateKey(selectedDate);
 
-      React.useEffect(() => {
-        const unsubscribe = onSnapshot(collection(db, SCHEDULE_COLLECTION), (snapshot) => {
+      useEffect(() => {
+        const unsubscribe = db.collection(SCHEDULE_COLLECTION).onSnapshot((snapshot) => {
           const data = {};
           const allBooked = [];
           snapshot.forEach(doc => {
@@ -828,22 +813,22 @@
 
       const addSlot = async () => {
         const slotData = { id: Date.now().toString(), time: newTime, location: newLocation, status: 'open' };
-        try { await setDoc(doc(db, SCHEDULE_COLLECTION, selectedDateKey), { slots: arrayUnion(slotData) }, { merge: true }); } catch (e) { alert(e.message); }
+        try { await db.collection(SCHEDULE_COLLECTION).doc(selectedDateKey).set({ slots: firebase.firestore.FieldValue.arrayUnion(slotData) }, { merge: true }); } catch (e) { alert(e.message); }
       };
 
       const updateSlotStatus = async (slot, newStatus, clientName = '') => {
         try {
-          const docRef = doc(db, SCHEDULE_COLLECTION, selectedDateKey);
-          const docSnap = await getDoc(docRef);
-          if (docSnap.exists()) {
+          const docRef = db.collection(SCHEDULE_COLLECTION).doc(selectedDateKey);
+          const docSnap = await docRef.get();
+          if (docSnap.exists) {
             const updatedSlots = docSnap.data().slots.map(s => s.id === slot.id ? { ...s, status: newStatus, clientName } : s);
-            await setDoc(docRef, { slots: updatedSlots });
+            await docRef.set({ slots: updatedSlots });
           }
         } catch (e) { console.error(e); }
       };
 
       const removeSlot = async (slot) => {
-        try { await updateDoc(doc(db, SCHEDULE_COLLECTION, selectedDateKey), { slots: arrayRemove(slot) }); } catch (e) { console.error(e); }
+        try { await db.collection(SCHEDULE_COLLECTION).doc(selectedDateKey).update({ slots: firebase.firestore.FieldValue.arrayRemove(slot) }); } catch (e) { console.error(e); }
       };
 
       const handleUserClick = (slot) => { 
@@ -1084,8 +1069,6 @@
       );
     };
 
-    // ... (PriceItem, AccordionItem, App, root render 同上) ...
-    // --- 主程式架構 ---
     const PriceItem = ({ name, price, desc }) => (
       <div className="flex justify-between items-baseline border-b border-dotted border-stone-300 pb-2 last:border-0">
         <div className="flex flex-col"><span className="font-medium text-stone-700 text-base">{name}</span>{desc && <span className="text-xs text-stone-400 mt-0.5">{desc}</span>}</div>
@@ -1094,7 +1077,7 @@
     );
 
     const AccordionItem = ({ q, a }) => {
-      const [isOpen, setIsOpen] = React.useState(false);
+      const [isOpen, setIsOpen] = useState(false);
       return (
         <div className="border-2 border-stone-200 rounded-2xl bg-white overflow-hidden transition-all duration-300">
           <button onClick={() => setIsOpen(!isOpen)} className="w-full flex justify-between items-center p-4 text-left hover:bg-stone-50 transition">
@@ -1106,34 +1089,28 @@
       );
     };
 
-    // === 主應用程式 (已修正重複問題) ===
     function App() {
-      const [isMenuOpen, setIsMenuOpen] = React.useState(false);
-      const [activeTab, setActiveTab] = React.useState('price');
-      // --- 修改開始：新的狀態管理 ---
-      const [isAdmin, setIsAdmin] = React.useState(false);
-      const [showAdminLogin, setShowAdminLogin] = React.useState(false);
-      const [adminEmailInput, setAdminEmailInput] = React.useState(''); // 新增 Email 輸入
-      const [adminPassword, setAdminPassword] = React.useState('');
-      const [loadingAuth, setLoadingAuth] = React.useState(true);
-      const [isLookupOpen, setIsLookupOpen] = React.useState(false);
+      const [isMenuOpen, setIsMenuOpen] = useState(false);
+      const [activeTab, setActiveTab] = useState('price');
+      const [isAdmin, setIsAdmin] = useState(false);
+      const [showAdminLogin, setShowAdminLogin] = useState(false);
+      const [adminEmailInput, setAdminEmailInput] = useState(''); 
+      const [adminPassword, setAdminPassword] = useState('');
+      const [loadingAuth, setLoadingAuth] = useState(true);
+      const [isLookupOpen, setIsLookupOpen] = useState(false);
       
-      // 設定您的管理員 Email (必須跟 Firebase Console 設的一樣)
       const ADMIN_EMAIL = "bianca.studio2026@gmail.com"; 
 
-      React.useEffect(() => {
-        // 監聽登入狀態改變
-        const unsubscribe = onAuthStateChanged(auth, (user) => {
+      useEffect(() => {
+        const unsubscribe = auth.onAuthStateChanged((user) => {
           if (user) {
-            // 如果登入的使用者 Email 等於您的管理員 Email，就是管理員模式
             if (user.email === ADMIN_EMAIL) {
               setIsAdmin(true);
             } else {
               setIsAdmin(false);
             }
           } else {
-            // 如果沒有使用者 (例如剛登出)，自動執行匿名登入，確保客人功能正常
-            signInAnonymously(auth).catch(console.error);
+            auth.signInAnonymously().catch(console.error);
             setIsAdmin(false);
           }
           setLoadingAuth(false);
@@ -1141,13 +1118,12 @@
         return () => unsubscribe();
       }, []);
 
-      // 處理管理員登入
       const handleAdminLogin = async () => {
         if (!adminEmailInput || !adminPassword) return alert("請輸入帳號密碼");
         try {
-          await signInWithEmailAndPassword(auth, adminEmailInput, adminPassword);
+          await auth.signInWithEmailAndPassword(adminEmailInput, adminPassword);
           setShowAdminLogin(false);
-          setAdminPassword(''); // 清空密碼欄位
+          setAdminPassword(''); 
           alert("管理員登入成功！");
         } catch (error) {
           console.error(error);
@@ -1155,18 +1131,16 @@
         }
       };
 
-      // 處理登出 (變回一般客人模式)
       const handleAdminLogout = async () => {
-        await signOut(auth);
+        await auth.signOut();
         alert("已登出管理模式");
       };
-      // --- 修改結束 ---
 
       const scrollToSection = (id) => { setActiveTab(id); setIsMenuOpen(false); const element = document.getElementById(id); if (element) element.scrollIntoView({ behavior: 'smooth' }); };
 
       const openLookup = () => {
         setIsLookupOpen(true);
-        setIsMenuOpen(false); // 關閉選單
+        setIsMenuOpen(false); 
       };
 
       return (
@@ -1284,7 +1258,6 @@
             <p>&copy; 2024 Bianca_eye.studio</p>
             <p className="text-xs mt-1">Design for Beauty</p>
             
-            {/* --- Footer 的登入區塊 --- */}
             <div className="mt-8 pt-4 border-t border-stone-200 w-3/4 mx-auto">
               {!isAdmin ? (
                 <button onClick={() => setShowAdminLogin(!showAdminLogin)} className="text-[10px] text-stone-300 hover:text-stone-500 transition">

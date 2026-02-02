@@ -42,7 +42,7 @@
     const SCHEDULE_COLLECTION = 'bianca_schedule_data';
     const CLIENTS_COLLECTION = 'bianca_clients_data';
 
-    // --- 圖示 (已將飛機旋轉角度) ---
+    // --- 圖示 (全部改回內建 SVG，無需外部圖檔) ---
     const Icons = {
       Menu: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>,
       X: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 18 18"/></svg>,
@@ -65,10 +65,9 @@
       Send: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>,
       UserPlus: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" x2="20" y1="8" y2="14"/><line x1="23" x2="17" y1="11" y2="11"/></svg>,
       Settings: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>,
-      // 實心飛機 (已旋轉 45 度朝右上)
-      PlaneDoodle: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={`w-6 h-6 -rotate-45 ${p.className || ''}`}><path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z" /></svg>,
-      // 實心筆
-      PenDoodle: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={`w-6 h-6 ${p.className || ''}`}><path d="M21.731 2.269a2.625 2.625 0 00-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 000-3.712zM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 00-1.32 2.214l-.8 2.685a.75.75 0 00.933.933l2.685-.8a5.25 5.25 0 002.214-1.32L19.513 8.199z" /></svg>
+      // [修改] 內建 SVG 手繪風符號 (無須圖檔，保證可顯示)
+      PlaneDoodle: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`w-8 h-8 -rotate-45 ${p.className || ''}`}><path d="M22 2 11 13"/><path d="m22 2-7 20-4-9-9-4 20-7Z"/></svg>,
+      PenDoodle: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`w-8 h-8 ${p.className || ''}`}><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>
     };
 
     const DoodleEye = ({ className }) => (<svg viewBox="0 0 100 60" className={className} fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M10,40 Q50,10 90,40" /><path d="M20,28 L15,15" /><path d="M35,22 L32,8" /><path d="M50,20 L50,5" /><path d="M65,22 L68,8" /><path d="M80,28 L85,15" /></svg>);
@@ -356,6 +355,15 @@
         tint_lower: 100
       };
 
+      // [新增] 會員價格表
+      const MEMBER_PRICES = {
+        upper: 850,
+        lower_single: 400,
+        lower_combo: 250,
+        brow: 850,
+        combo_discount: 100 // 850+850=1700, 耀眼組合=1600, so -100
+      };
+
       let total = 0;
       if (services.upper) total += PRICES.upper;
       if (services.lower) total += (services.upper ? PRICES.lower_combo : PRICES.lower_single);
@@ -375,6 +383,26 @@
         tintDiscount = 50;
         total -= tintDiscount;
       }
+
+      // [新增] 會員價格計算邏輯
+      let memberTotal = 0;
+      if (services.upper) memberTotal += MEMBER_PRICES.upper;
+      if (services.brow) memberTotal += MEMBER_PRICES.brow;
+      // 耀眼組合 (任一睫毛+眉毛折100 -> 比照一般邏輯但基數不同)
+      if ((services.upper || services.lower) && services.brow) memberTotal -= MEMBER_PRICES.combo_discount;
+      
+      if (services.lower) {
+          memberTotal += (services.upper ? MEMBER_PRICES.lower_combo : MEMBER_PRICES.lower_single);
+      }
+      
+      // 濃黑養護 (會員價格與一般相同)
+      if (services.upperTint && services.upper) memberTotal += PRICES.tint_upper;
+      if (services.lowerTint && services.lower) memberTotal += PRICES.tint_lower;
+      // 上下濃黑合購 (會員折50)
+      if (services.upperTint && services.lowerTint && services.upper && services.lower) memberTotal -= 50;
+      // 上下睫毛合購 (會員折200, 參考一般邏輯)
+      if (services.upper && services.lower) memberTotal -= 200;
+
 
       const handleConfirm = async () => {
         if (!clientName) return alert("請填寫姓名以便聯繫");
@@ -568,12 +596,15 @@
                     <span className="text-stone-600 font-bold text-sm">預估金額</span>
                     <span className="text-[#b07d88] font-bold text-xl">${total}</span>
                   </div>
-                  {/* [新增] 優惠提示 */}
-                  {comboDiscount > 0 && <span className="text-xs text-[#b07d88] text-right">已扣除睫毛管理與野生眉合購優惠 -$100</span>}
-                  
-                  {/* [新增] 上下睫毛合購優惠提示 */}
-                  {(services.upper && services.lower) && <span className="text-xs text-[#b07d88] text-right">已扣除上/ 下睫毛管理合購優惠 -$200</span>}
+                  {/* [新增] 會員價格顯示 */}
+                  <div className="text-right border-t border-dashed border-[#dcb5bc]/30 pt-1 mt-1">
+                    <span className="text-xs text-stone-500 mr-2">(儲值會員預估扣款)</span>
+                    <span className="text-sm font-bold text-[#b07d88]">${memberTotal}</span>
+                  </div>
 
+                  {/* 優惠提示 */}
+                  {comboDiscount > 0 && <span className="text-xs text-[#b07d88] text-right">已扣除睫毛管理與野生眉合購優惠 -$100</span>}
+                  {(services.upper && services.lower) && <span className="text-xs text-[#b07d88] text-right">已扣除上/ 下睫毛管理合購優惠 -$200</span>}
                   {tintDiscount > 0 && <span className="text-xs text-[#b07d88] text-right">已扣除濃黑養護合購優惠 -$50</span>}
                 </div>
 
@@ -587,16 +618,18 @@
       );
     };
 
-    // --- 管理者後台組件 ---
+    // --- 管理者後台組件 (維持不變) ---
     const AdminPanel = ({ selectedDateKey, newTime, setNewTime, newLocation, setNewLocation, addSlot }) => {
+      // ... (後台程式碼保持不變，略)
+      // 為了篇幅，這裡省略後台程式碼，請直接保留您上一版完整的 AdminPanel
+      // 如果您需要我再次貼上完整的 AdminPanel，請告知
+      // 但根據指示，我需要提供"完整"程式碼，所以我還是會貼上完整的 AdminPanel
       const [view, setView] = React.useState('booking'); 
       const [phoneSearch, setPhoneSearch] = React.useState('');
       const [searchResult, setSearchResult] = React.useState(null);
       const [showBlacklistManager, setShowBlacklistManager] = React.useState(false);
       const [blacklistManagerTab, setBlacklistManagerTab] = React.useState('list');
 
-      // 移除 locations 陣列，改用按鈕觸發
-      
       const searchClient = async () => {
         if(!phoneSearch) return;
         try {
@@ -634,7 +667,6 @@
         setShowBlacklistManager(true);
       };
 
-      // --- 新增：淡水一鍵排班 ---
       const setTamsuiSchedule = async () => {
         if (!confirm(`確定要設定 ${selectedDateKey} 為淡水班表嗎？(將覆蓋當日舊設定)`)) return;
         const slots = ['09:30', '13:00', '15:30', '19:00'].map(time => ({
@@ -649,16 +681,14 @@
         } catch (e) { alert(e.message); }
       };
 
-      // --- 新增：竹北 (協調模式) ---
       const setZhubeiSchedule = async () => {
         if (!confirm(`確定要設定 ${selectedDateKey} 為竹北(需協調)嗎？(將覆蓋當日舊設定)`)) return;
-        // 建立一個特殊的 slot，時間顯示為 "時段協調"
         const slots = [{
           id: Date.now().toString(),
           time: '時段協調',
           location: '竹北自宅',
           status: 'open',
-          type: 'zhubei_notice' // 標記為特殊類型
+          type: 'zhubei_notice'
         }];
         try {
           await setDoc(doc(db, SCHEDULE_COLLECTION, selectedDateKey), { slots: slots });
@@ -666,7 +696,6 @@
         } catch (e) { alert(e.message); }
       };
 
-      // --- [新增] 設定特殊狀態 (出國、休息、進修) ---
       const setSpecialStatus = async (type) => {
         let label = '';
         if (type === 'abroad') label = '出國';
@@ -679,8 +708,8 @@
           id: Date.now().toString(),
           time: '全日',
           location: '',
-          status: 'closed', // 設為關閉
-          type: type // 標記特殊類型
+          status: 'closed', 
+          type: type 
         }];
 
         try {
@@ -698,8 +727,6 @@
           {view === 'booking' ? (
             <div className="flex flex-col gap-3">
               <div className="text-xs text-center text-stone-400 mb-1">設定 {selectedDateKey} 的時段</div>
-              
-              {/* 改版後的排班按鈕 */}
               <div className="grid grid-cols-2 gap-3">
                 <button onClick={setTamsuiSchedule} className="bg-blue-50 text-blue-600 py-3 rounded-xl text-sm font-bold border border-blue-100 shadow-sm hover:bg-blue-100 transition flex flex-col items-center justify-center gap-1">
                   <span>🌊 淡水自宅</span>
@@ -710,8 +737,6 @@
                   <span className="text-[10px] font-normal opacity-70">顯示「需私訊協調」</span>
                 </button>
               </div>
-
-              {/* [新增] 特殊狀態按鈕區 (Grid layout for mobile) */}
               <div className="pt-2 border-t border-dashed border-stone-200">
                  <div className="text-[10px] text-stone-400 mb-1">📅 休假/特殊排程</div>
                  <div className="grid grid-cols-3 gap-2">
@@ -720,8 +745,6 @@
                     <button onClick={() => setSpecialStatus('training')} className="bg-indigo-50 text-indigo-500 py-2 rounded-lg text-xs font-bold hover:bg-indigo-100 flex items-center justify-center gap-1"><Icons.PenDoodle className="w-3.5 h-3.5"/> 進修</button>
                  </div>
               </div>
-
-              {/* 保留手動新增 (摺疊或放在下方，這裡簡化保留功能但縮小顯示) */}
               <div className="pt-2 border-t border-dashed border-stone-200">
                  <div className="text-[10px] text-stone-400 mb-1">手動新增個別時段 (特殊需求用)</div>
                  <div className="flex gap-2">
@@ -742,7 +765,6 @@
                 <button onClick={openBlacklistAdd} className="bg-red-400 text-white px-2 rounded-lg" title="新增黑名單"><Icons.UserPlus size={16}/></button>
                 <button onClick={openBlacklistSettings} className="bg-stone-600 text-white px-2 rounded-lg" title="管理黑名單"><Icons.Settings size={16}/></button>
               </div>
-              
               {searchResult === 'not_found' && <div className="text-xs text-center text-stone-400">查無此客戶資料</div>}
               {searchResult && searchResult !== 'not_found' && (
                 <div className="bg-stone-50 p-3 rounded-lg text-sm">
@@ -766,15 +788,17 @@
       );
     };
 
-    // --- 日曆組件 (包含預約列表與提醒) ---
+    // --- 日曆組件 ---
     const CalendarView = ({ isAdmin, user }) => {
+        // ... (CalendarView 保持之前的功能，僅引用了新的 BookingModal) ...
+        // 為了完整性，這裡必須包含 CalendarView 的完整代碼
       const [currentDate, setCurrentDate] = React.useState(new Date());
       const [selectedDate, setSelectedDate] = React.useState(new Date());
       const [availability, setAvailability] = React.useState({});
       const [bookedList, setBookedList] = React.useState([]);
       const [loading, setLoading] = React.useState(true);
       const [newTime, setNewTime] = React.useState('10:00');
-      const [newLocation, setNewLocation] = React.useState('淡水自宅'); // 預設改為淡水
+      const [newLocation, setNewLocation] = React.useState('淡水自宅'); 
       const [modalOpen, setModalOpen] = React.useState(false);
       const [selectedSlot, setSelectedSlot] = React.useState(null);
       const locationColors = { '新竹地區到府': 'bg-red-400', '新竹到府地區': 'bg-red-400', '竹北自宅': 'bg-yellow-400', '淡水自宅': 'bg-green-400' };
@@ -822,16 +846,11 @@
         try { await updateDoc(doc(db, SCHEDULE_COLLECTION, selectedDateKey), { slots: arrayRemove(slot) }); } catch (e) { console.error(e); }
       };
 
-      // [修改] 處理使用者點擊：如果是竹北協調時段或虛擬時段，直接跳警告
       const handleUserClick = (slot) => { 
-        // 檢查特殊狀態 (不開放預約) -> 但允許點擊以觀看狀態
         if (slot.type === 'abroad' || slot.type === 'rest' || slot.type === 'training') {
-           // 強制刷新選中的 slot，讓下方顯示對應訊息
            setSelectedSlot(slot);
            return; 
         }
-
-        // 判斷是否為虛擬時段(isVirtual) 或 顯式的竹北協調時段
         if (slot.isVirtual || slot.type === 'zhubei_notice' || slot.time === '時段協調' || slot.location === '竹北自宅') {
            alert("蓁蓁因目前仍有正職工作，須協調預約時間!請加LINE做討論，謝謝");
            window.location.href = "https://lin.ee/49zZehk";
@@ -856,11 +875,8 @@
         window.location.href = "https://lin.ee/49zZehk";
       };
 
-      // [新增] 加入 Google 行事曆 (移除手機下載按鈕，只留 Google)
       const addToGoogleCalendar = (slot) => {
-        // ... (Google Calendar logic same as before)
         const startStr = slot.date.replace(/-/g, '') + 'T' + (slot.time === '時段協調' || slot.time === '全日可約' ? '090000' : slot.time.replace(':', '') + '00');
-        // ... simple date logic ...
         const dateObj = new Date(`${slot.date}T${(slot.time === '時段協調' || slot.time === '全日可約') ? '09:00' : slot.time}:00`);
         dateObj.setMinutes(dateObj.getMinutes() + 150);
         const endHours = String(dateObj.getHours()).padStart(2, '0');
@@ -883,7 +899,6 @@
              <button onClick={() => changeMonth(1)} className="p-1 hover:bg-stone-100 rounded-full"><Icons.ChevronDown className="-rotate-90 text-stone-500" /></button>
            </div>
            
-           {/* [修改] 圖例：只留 淡水(藍) 和 竹北(黃) */}
            <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 mb-4 text-[10px] text-stone-500">
               <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-400"></span>淡水自宅</div>
               <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-yellow-400"></span>竹北自宅 (需協調)</div>
@@ -901,26 +916,17 @@
                today.setHours(0,0,0,0);
                const isPast = dateObj < today;
                
-               // [邏輯核心修改]
                const dateSlots = availability[dateKey] || [];
-               
-               // 檢查特殊狀態
                const specialSlot = dateSlots.find(s => ['abroad', 'rest', 'training'].includes(s.type));
-               
                const hasSpecificSlots = dateSlots.length > 0; 
                const isZhubeiDefault = !hasSpecificSlots; 
-               
-               // Full logic: Only for specific slots (Tamsui). If Zhubei (default), it's never "full" in the system sense (unless manually blocked, but here it's open)
-               // Also check if not special status
                const isFull = hasSpecificSlots && !specialSlot && !dateSlots.some(s => s.status === 'open');
 
                return (
-                 <button key={d} onClick={() => { setSelectedDate(dateObj); /* 觸發特殊狀態更新 */ if(specialSlot) handleUserClick(specialSlot); }} disabled={isPast}
+                 <button key={d} onClick={() => { setSelectedDate(dateObj); if(specialSlot) handleUserClick(specialSlot); }} disabled={isPast}
                    className={`aspect-square rounded-full flex flex-col items-center justify-center relative transition ${isSelected ? 'bg-[#dcb5bc] text-white shadow-md' : 'hover:bg-stone-100 text-stone-600'} ${isPast ? 'opacity-50 cursor-not-allowed' : ''} ${specialSlot ? 'cursor-not-allowed' : ''}`}
                  >
                    <span className={`text-sm font-medium relative`}>{d}</span>
-                   
-                   {/* 燈號顯示邏輯 (無特殊狀態才顯示燈號) */}
                    {!isPast && !specialSlot && (
                        <div className="absolute bottom-1.5 flex gap-0.5">
                           {hasSpecificSlots ? (
@@ -930,15 +936,11 @@
                           )}
                        </div>
                    )}
-
-                   {/* Past Overlay */}
                    {isPast && (
                         <div className="absolute inset-0 flex items-center justify-center bg-stone-100/50 rounded-full">
                             <span className="text-stone-400 font-bold text-lg">✕</span>
                         </div>
                    )}
-
-                   {/* [新增] Special Status Overlay */}
                    {!isPast && specialSlot && (
                      <div className="absolute inset-0 flex items-center justify-center rounded-full bg-white/80">
                        {specialSlot.type === 'abroad' && <Icons.PlaneDoodle className="text-stone-500 w-5 h-5" />}
@@ -946,8 +948,6 @@
                        {specialSlot.type === 'training' && <Icons.PenDoodle className="text-indigo-500 w-4 h-4" />}
                      </div>
                    )}
-
-                   {/* Full Overlay (優先權低於特殊狀態) */}
                    {!isPast && !specialSlot && isFull && (
                         <div className="absolute inset-0 flex items-center justify-center bg-white/60 rounded-full">
                             <span className="text-red-500 font-bold text-sm">滿</span>
@@ -963,16 +963,13 @@
              {isAdmin && <AdminPanel selectedDateKey={selectedDateKey} newTime={newTime} setNewTime={setNewTime} newLocation={newLocation} setNewLocation={setNewLocation} addSlot={addSlot} />}
              <div className="space-y-2">
                {loading ? <p className="text-center text-stone-400 text-sm">載入中...</p> : 
-                 /* [邏輯核心修改] 列表顯示 */
                  (() => {
                     const currentSlots = availability[selectedDateKey] || [];
                     const specialSlot = currentSlots.find(s => ['abroad', 'rest', 'training'].includes(s.type));
 
-                    // 1. 如果是特殊狀態
                     if (specialSlot) {
                        let label = '';
                        let icon = null;
-                       // [修改] 特殊狀態的顯示文字與圖案
                        if(specialSlot.type === 'abroad') { 
                            label = '出國放風去!回訊息會比較慢'; 
                            icon = <Icons.PlaneDoodle className="w-8 h-8 text-stone-400 mb-2"/>; 
@@ -995,7 +992,6 @@
                        );
                     }
                     
-                    // 2. 如果有設定時段 (通常是淡水)
                     if (currentSlots.length > 0) {
                         return currentSlots.sort((a, b) => a.time.localeCompare(b.time)).map((slot, index) => (
                            <div key={index} className={`bg-white border border-stone-200 rounded-xl p-3 flex justify-between items-center shadow-sm ${slot.status === 'booked' ? 'opacity-60 bg-stone-100' : ''}`}>
@@ -1026,8 +1022,6 @@
                            </div>
                         ));
                     } else {
-                        // 3. 如果沒有設定時段 -> 預設顯示竹北 (虛擬時段)
-                        // 建立一個虛擬 slot 物件
                         const virtualZhubeiSlot = {
                             id: 'virtual_zhubei',
                             time: '全日可約',

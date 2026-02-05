@@ -32,6 +32,13 @@
 <body>
   <div id="root"></div>
 
+  <script>
+    window.onerror = function(message, source, lineno, colno, error) {
+      console.error(error);
+      // alert("系統發生錯誤，請截圖告知：" + message);
+    };
+  </script>
+
   <script type="text/babel">
     const { useState, useEffect } = React;
 
@@ -46,7 +53,7 @@
       measurementId: "G-6CTBV02QR4"
     };
 
-    // 初始化 Firebase (單機版寫法)
+    // 初始化 Firebase (加入防呆)
     if (!firebase.apps.length) {
       firebase.initializeApp(firebaseConfig);
     }
@@ -56,7 +63,7 @@
     const SCHEDULE_COLLECTION = 'bianca_schedule_data';
     const CLIENTS_COLLECTION = 'bianca_clients_data';
 
-    // --- 圖示庫 (全部內建 SVG) ---
+    // --- 圖示庫 (SVG) ---
     const Icons = {
       Menu: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>,
       X: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 18 18"/></svg>,
@@ -79,11 +86,8 @@
       Send: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>,
       UserPlus: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" x2="20" y1="8" y2="14"/><line x1="23" x2="17" y1="11" y2="11"/></svg>,
       Settings: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>,
-      // 手繪風飛機
       PlaneDoodle: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`w-8 h-8 -rotate-45 ${p.className || ''}`}><path d="M22 2 11 13"/><path d="m22 2-7 20-4-9-9-4 20-7Z"/></svg>,
-      // 手繪風筆
       PenDoodle: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`w-8 h-8 ${p.className || ''}`}><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>,
-      // Check (打勾)
       Check: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
       Crown: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/></svg>
     };
@@ -115,7 +119,6 @@
               <path d="M10,30 Q50,55 90,30" />
               <circle cx="50" cy="30" r="8" />
               <path d="M20,22 L15,10" /><path d="M35,16 L32,5" /><path d="M50,14 L50,2" /><path d="M65,16 L68,5" /><path d="M80,22 L85,10" />
-              
               {mode === 'bundle' ? (
                  <>
                    <line x1="50" y1="20" x2="50" y2="55" stroke="#b07d88" strokeWidth="3" />
@@ -351,481 +354,6 @@
       );
     };
 
-    const BookingModal = ({ isOpen, onClose, slot, dateKey }) => {
-      const [step, setStep] = useState(1);
-      const [clientPhone, setClientPhone] = useState('');
-      const [clientData, setClientData] = useState(null); 
-      const [loading, setLoading] = useState(false);
-      const [clientName, setClientName] = useState('');
-      
-      const [services, setServices] = useState({
-        upper: false, upperTint: false,
-        lower: false, lowerTint: false, brow: false
-      });
-
-      useEffect(() => {
-        if(isOpen) {
-          setStep(1); setClientPhone(''); setClientData(null);
-          setClientName(''); 
-          setServices({ upper: false, upperTint: false, lower: false, lowerTint: false, brow: false });
-        }
-      }, [isOpen]);
-
-      if (!isOpen) return null;
-
-      const checkClient = async () => {
-        if(clientPhone.length !== 10) return alert("請確認電話號碼是否有誤~");
-        setLoading(true);
-        try {
-          const docRef = db.collection(CLIENTS_COLLECTION).doc(clientPhone);
-          const docSnap = await docRef.get();
-          if (docSnap.exists) {
-            const data = docSnap.data();
-            if (data.blacklist) {
-              alert("您有預約未到的紀錄, 請直接利用官方Line與店家聯繫~");
-              window.location.href = "https://lin.ee/49zZehk";
-              onClose();
-              return;
-            }
-            setClientData({ ...data, status: 'old' });
-            setClientName(data.name || '');
-          } else {
-            setClientData({ status: 'new' });
-          }
-          setStep(2);
-        } catch (e) { console.error(e); alert("系統錯誤"); }
-        setLoading(false);
-      };
-
-      const isNewClient = clientData?.status === 'new';
-      const PRICES = { upper: isNewClient ? 699 : 999, brow: isNewClient ? 699 : 999, lower_single: 500, lower_combo: 300, tint_upper: 200, tint_lower: 100 };
-      const MEMBER_PRICES = { upper: 850, lower_single: 400, lower_combo: 250, brow: 850, combo_discount: 100 };
-
-      let total = 0;
-      if (services.upper) total += PRICES.upper;
-      if (services.lower) total += (services.upper ? PRICES.lower_combo : PRICES.lower_single);
-      if (services.brow) total += PRICES.brow;
-      
-      let comboDiscount = 0;
-      if ((services.upper || services.lower) && services.brow) { comboDiscount = 100; total -= comboDiscount; }
-
-      if (services.upperTint && services.upper) total += PRICES.tint_upper;
-      if (services.lowerTint && services.lower) total += PRICES.tint_lower;
-      
-      let tintDiscount = 0;
-      if (services.upperTint && services.lowerTint && services.upper && services.lower) { tintDiscount = 50; total -= tintDiscount; }
-
-      let memberTotal = 0;
-      if (services.upper) memberTotal += MEMBER_PRICES.upper;
-      if (services.brow) memberTotal += MEMBER_PRICES.brow;
-      if ((services.upper || services.lower) && services.brow) memberTotal -= MEMBER_PRICES.combo_discount;
-      if (services.lower) { memberTotal += (services.upper ? MEMBER_PRICES.lower_combo : MEMBER_PRICES.lower_single); }
-      if (services.upperTint && services.upper) memberTotal += PRICES.tint_upper;
-      if (services.lowerTint && services.lower) memberTotal += PRICES.tint_lower;
-      if (services.upperTint && services.lowerTint && services.upper && services.lower) memberTotal -= 50;
-      if (services.upper && services.lower) memberTotal -= 200;
-
-      const handleConfirm = async () => {
-        if (!clientName) return alert("請填寫姓名以便聯繫");
-
-        const items = [];
-        if (services.upper) items.push(`上睫毛管理 ($${PRICES.upper})`);
-        if (services.upperTint) items.push(`  + 濃黑養護 ($${PRICES.tint_upper})`);
-        if (services.lower) items.push(`下睫毛管理 ($${services.upper ? PRICES.lower_combo : PRICES.lower_single})`);
-        if (services.lowerTint) items.push(`  + 濃黑養護 ($${PRICES.tint_lower})`);
-        if (services.brow) items.push(`野生眉雕塑 ($${PRICES.brow})`);
-        
-        if ((services.upper || services.lower) && services.brow) items.push(`(眉睫合購折抵 -$100)`);
-        if (services.upper && services.lower) items.push(`(上下睫毛合購折抵 -$200)`);
-        if (tintDiscount > 0) items.push(`(濃黑養護合購優惠 -$50)`);
-
-        if (!isNewClient) items.push(`(歡迎回娘家♡)`);
-
-        let extraInfo = '';
-        if (slot.location.includes('新竹')) extraInfo = '\n地址：(請填寫詳細地址，到府費$100-150視距離報價)';
-
-        const text = `Hi Bianca, 我想預約：\n日期：${dateKey}\n時間：${slot.time}\n地點：${slot.location}${extraInfo}\n\n預約項目：\n${items.join('\n')}\n\n預估金額：$${total}\n\n姓名：${clientName}\n電話：${clientPhone}\n\n*備註：當天若帶妝，需加收$100卸妝費*`;
-
-        let copySuccess = false;
-        try {
-            const textArea = document.createElement("textarea");
-            textArea.value = text;
-            textArea.style.position = "fixed"; 
-            textArea.style.left = "-9999px";
-            document.body.appendChild(textArea);
-            textArea.focus();
-            textArea.select();
-            copySuccess = document.execCommand('copy');
-            document.body.removeChild(textArea);
-        } catch (e) {
-            console.error("Copy failed", e);
-        }
-
-        try {
-          await db.runTransaction(async (transaction) => {
-            const scheduleRef = db.collection(SCHEDULE_COLLECTION).doc(dateKey);
-            const scheduleDoc = await transaction.get(scheduleRef);
-            
-            if (!scheduleDoc.exists) throw new Error("行程表資料不存在");
-
-            const slots = scheduleDoc.data().slots || [];
-            
-            const duplicateBooking = slots.find(s => 
-              s.status === 'booked' && 
-              s.clientName === clientName && 
-              s.clientPhone === clientPhone
-            );
-
-            if (duplicateBooking) {
-                throw new Error("DUPLICATE_BOOKING");
-            }
-
-            const targetSlotIndex = slots.findIndex(s => s.id === slot.id);
-            if (targetSlotIndex === -1) throw new Error("找不到該時段");
-            if (slots[targetSlotIndex].status !== 'open') throw new Error("抱歉！該時段剛剛被其他人搶先預約了 😭");
-
-            slots[targetSlotIndex].status = 'booked';
-            slots[targetSlotIndex].clientName = clientName;
-            slots[targetSlotIndex].clientPhone = clientPhone;
-            slots[targetSlotIndex].services = items.join(', ');
-
-            transaction.update(scheduleRef, { slots: slots });
-
-            const clientRef = db.collection(CLIENTS_COLLECTION).doc(clientPhone);
-            transaction.set(clientRef, {
-              phone: clientPhone,
-              name: clientName,
-              lastVisit: dateKey,
-              visitCount: (clientData?.visitCount || 0) + 1,
-              blacklist: false
-            }, { merge: true });
-          });
-
-          if (copySuccess) {
-              alert("🎉 預約資訊已複製！\n\n⚠️ 重要提醒：\n即將跳轉至 LINE，請務必在對話框直接「貼上」並「傳送」訊息，才算真正完成預約喔！");
-          } else {
-              alert("預約成功！時段已為您保留。\n(自動複製失敗) 請手動複製以下內容傳送給 LINE 客服：\n\n" + text);
-          }
-
-          window.location.href = "https://lin.ee/49zZehk";
-          setTimeout(() => { onClose(); }, 500);
-
-        } catch (e) {
-          if (e.message === "DUPLICATE_BOOKING") {
-              alert("您已預約不同時段, 請直接使用Line向Bianca官方聯繫");
-              onClose();
-              return;
-          }
-          alert("預約失敗：" + e.message);
-          if (e.message.includes("搶先")) { onClose(); }
-        }
-      };
-
-      return (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 modal-overlay" onClick={onClose}>
-          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl border-2 border-stone-200 slide-up" onClick={e => e.stopPropagation()}>
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="font-bold text-stone-700 text-lg">
-                {step === 1 ? '會員驗證' : (isNewClient ? '✨ 新客體驗預約' : '❤️ VIP 回訪預約')}
-              </h3>
-              <button onClick={onClose}><Icons.X className="text-stone-400" /></button>
-            </div>
-            
-            {step === 1 ? (
-              <div className="space-y-4">
-                <p className="text-sm text-stone-500">請輸入手機號碼，系統將自動查詢是否享有新客體驗價。</p>
-                <input 
-                  type="tel" 
-                  value={clientPhone}
-                  onChange={e => setClientPhone(e.target.value)}
-                  placeholder="09xxxxxxxx"
-                  className="w-full border-2 border-stone-200 rounded-xl p-3 text-lg outline-none focus:border-[#dcb5bc]"
-                />
-                <button 
-                  onClick={checkClient} 
-                  disabled={loading}
-                  className="w-full bg-[#dcb5bc] text-white py-3 rounded-xl font-bold shadow-md hover:opacity-90 transition disabled:opacity-50"
-                >
-                  {loading ? '查詢中...' : '下一步'}
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-3 mb-6 max-h-[60vh] overflow-y-auto no-scrollbar">
-                
-                <div className="mb-2">
-                  <input type="text" placeholder="請輸入您的姓名" value={clientName} onChange={e=>setClientName(e.target.value)} className="w-full border-2 border-stone-200 rounded-lg p-2 text-sm outline-none focus:border-[#dcb5bc]" />
-                </div>
-
-                <div className="border border-stone-200 rounded-xl p-3">
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input type="checkbox" checked={services.upper} onChange={() => setServices(p => ({...p, upper: !p.upper, upperTint: !p.upper ? false : p.upperTint}))} className="w-5 h-5 accent-[#dcb5bc]" />
-                    <span className="font-bold text-stone-600">上睫毛管理 <span className="text-[#b07d88]">${PRICES.upper}</span></span>
-                  </label>
-                  {services.upper && (
-                    <div className="ml-8 mt-2 pt-2 border-t border-dashed border-stone-100">
-                      <label className="flex items-center gap-2 cursor-pointer text-sm text-stone-500">
-                        <input type="checkbox" checked={services.upperTint} onChange={() => setServices(p => ({...p, upperTint: !p.upperTint}))} className="accent-[#dcb5bc]" />
-                        + 加購濃黑養護 ($200)
-                      </label>
-                    </div>
-                  )}
-                </div>
-
-                <div className="border border-stone-200 rounded-xl p-3">
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input type="checkbox" checked={services.lower} onChange={() => setServices(p => ({...p, lower: !p.lower, lowerTint: !p.lower ? false : p.lowerTint}))} className="w-5 h-5 accent-[#dcb5bc]" />
-                    <div className="flex flex-col">
-                      <span className="font-bold text-stone-600">下睫毛管理</span>
-                      <span className="text-xs text-stone-400">單作$500 / 搭配上睫毛優惠 <span className="text-[#b07d88] font-bold">$300</span></span>
-                    </div>
-                  </label>
-                  {services.lower && (
-                    <div className="ml-8 mt-2 pt-2 border-t border-dashed border-stone-100">
-                      <label className="flex items-center gap-2 cursor-pointer text-sm text-stone-500">
-                        <input type="checkbox" checked={services.lowerTint} onChange={() => setServices(p => ({...p, lowerTint: !p.lowerTint}))} className="accent-[#dcb5bc]" />
-                        + 加購濃黑養護 ($100)
-                      </label>
-                    </div>
-                  )}
-                </div>
-
-                <div className="border border-stone-200 rounded-xl p-3">
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input type="checkbox" checked={services.brow} onChange={() => setServices(p => ({...p, brow: !p.brow}))} className="w-5 h-5 accent-[#dcb5bc]" />
-                    <div className="flex flex-col">
-                      <span className="font-bold text-stone-600">野生眉雕塑 <span className="text-[#b07d88]">${PRICES.brow}</span></span>
-                      {(services.upper || services.lower) && <span className="text-xs text-[#b07d88] font-bold">✨ 與任一睫毛管理合購再折 $100</span>}
-                    </div>
-                  </label>
-                </div>
-
-                <div className="text-xs text-red-400 bg-red-50 p-2 rounded-lg text-center">
-                  ⚠️ 提醒：當天若帶妝到，需加收 $100 卸妝費
-                </div>
-                
-                {/* [修改] 恢復黃色便利貼提醒區塊 */}
-                <div className="bg-yellow-100 border-l-4 border-yellow-400 text-yellow-800 p-3 text-xs rounded shadow-sm relative">
-                   <div className="font-bold mb-1 flex items-center gap-1"><Icons.Sparkles className="w-3 h-3"/> 預約小提醒</div>
-                   <p>預約時間選擇後，將自動複製預約資訊，請跳轉至LINE後，<span className="font-bold underline text-red-500 bg-yellow-200 px-1 rounded">[貼上]</span>預約資訊並確認後，發送給闆娘做核對確認哦!</p>
-                </div>
-
-                <div className="bg-[#fae8eb] p-4 rounded-xl flex flex-col gap-1">
-                  <div className="flex justify-between items-center">
-                    <span className="text-stone-600 font-bold text-sm">預估金額</span>
-                    <span className="text-[#b07d88] font-bold text-xl">${total}</span>
-                  </div>
-                  
-                  {clientData?.isStoreMember && (
-                    <div className="text-right border-t border-dashed border-[#dcb5bc]/30 pt-1 mt-1">
-                      <span className="text-xs text-stone-500 mr-2">(儲值會員預估扣款)</span>
-                      <span className="text-sm font-bold text-[#b07d88]">${memberTotal}</span>
-                    </div>
-                  )}
-
-                  {comboDiscount > 0 && <span className="text-xs text-[#b07d88] text-right">已扣除睫毛管理與野生眉合購優惠 -$100</span>}
-                  {(services.upper && services.lower) && <span className="text-xs text-[#b07d88] text-right">已扣除上/ 下睫毛管理合購優惠 -$200</span>}
-                  {tintDiscount > 0 && <span className="text-xs text-[#b07d88] text-right">已扣除濃黑養護合購優惠 -$50</span>}
-                </div>
-
-                <button onClick={handleConfirm} disabled={total === 0} className="w-full bg-[#dcb5bc] text-white py-3 rounded-xl font-bold shadow-md hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed">
-                  確認預約，前往 LINE
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      );
-    };
-
-    const AdminPanel = ({ selectedDateKey, newTime, setNewTime, newLocation, setNewLocation, addSlot }) => {
-      const [view, setView] = useState('booking'); 
-      const [phoneSearch, setPhoneSearch] = useState('');
-      const [searchResult, setSearchResult] = useState(null);
-      const [showBlacklistManager, setShowBlacklistManager] = useState(false);
-      const [blacklistManagerTab, setBlacklistManagerTab] = useState('list');
-
-      const searchClient = async () => {
-        if(!phoneSearch) return;
-        try {
-          const docRef = db.collection(CLIENTS_COLLECTION).doc(phoneSearch);
-          const docSnap = await docRef.get();
-          if (docSnap.exists) setSearchResult(docSnap.data());
-          else setSearchResult('not_found');
-        } catch(e) { alert(e.message); }
-      };
-      
-      const toggleStoreMember = async () => {
-        if(!searchResult || searchResult === 'not_found') return;
-        try {
-          const newValue = !searchResult.isStoreMember;
-          await db.collection(CLIENTS_COLLECTION).doc(searchResult.phone).update({
-            isStoreMember: newValue
-          });
-          setSearchResult(prev => ({...prev, isStoreMember: newValue}));
-          alert(newValue ? "已設定為儲值會員" : "已取消儲值會員資格");
-        } catch(e) { alert(e.message); }
-      };
-
-      const toggleBlacklist = async () => {
-        if(!searchResult || searchResult === 'not_found') return;
-        try {
-          await db.collection(CLIENTS_COLLECTION).doc(searchResult.phone).update({
-            blacklist: !searchResult.blacklist
-          });
-          setSearchResult(prev => ({...prev, blacklist: !prev.blacklist}));
-        } catch(e) { alert(e.message); }
-      };
-
-      const saveNote = async (note) => {
-        try {
-          await db.collection(CLIENTS_COLLECTION).doc(searchResult.phone).update({ notes: note });
-          alert("備註已儲存");
-        } catch(e) { alert(e.message); }
-      };
-
-      const openBlacklistAdd = () => {
-        setBlacklistManagerTab('add');
-        setShowBlacklistManager(true);
-      };
-
-      const openBlacklistSettings = () => {
-        setBlacklistManagerTab('list');
-        setShowBlacklistManager(true);
-      };
-
-      const setTamsuiSchedule = async () => {
-        if (!confirm(`確定要設定 ${selectedDateKey} 為淡水班表嗎？(將覆蓋當日舊設定)`)) return;
-        const slots = ['09:30', '13:00', '15:30', '19:00'].map(time => ({
-          id: Date.now().toString() + time.replace(':', ''),
-          time,
-          location: '淡水自宅',
-          status: 'open'
-        }));
-        try {
-          await db.collection(SCHEDULE_COLLECTION).doc(selectedDateKey).set({ slots: slots });
-          alert("淡水班表已設定完成");
-        } catch (e) { alert(e.message); }
-      };
-
-      const setZhubeiSchedule = async () => {
-        if (!confirm(`確定要設定 ${selectedDateKey} 為竹北(需協調)嗎？(將覆蓋當日舊設定)`)) return;
-        const slots = [{
-          id: Date.now().toString(),
-          time: '時段協調',
-          location: '竹北自宅',
-          status: 'open',
-          type: 'zhubei_notice'
-        }];
-        try {
-          await db.collection(SCHEDULE_COLLECTION).doc(selectedDateKey).set({ slots: slots });
-          alert("竹北模式已設定");
-        } catch (e) { alert(e.message); }
-      };
-
-      const setSpecialStatus = async (type) => {
-        let label = '';
-        if (type === 'abroad') label = '出國';
-        if (type === 'rest') label = '休息';
-        if (type === 'training') label = '進修';
-
-        if (!confirm(`確定要將 ${selectedDateKey} 設定為【${label}】嗎？(將覆蓋當日舊設定)`)) return;
-
-        const slots = [{
-          id: Date.now().toString(),
-          time: '全日',
-          location: '',
-          status: 'closed', 
-          type: type 
-        }];
-
-        try {
-          await db.collection(SCHEDULE_COLLECTION).doc(selectedDateKey).set({ slots: slots });
-          alert(`已設定為 ${label}`);
-        } catch (e) { alert(e.message); }
-      };
-
-      return (
-        <div className="mb-6 bg-white p-3 rounded-xl border border-stone-200 shadow-sm">
-          <div className="flex gap-2 mb-4 border-b border-stone-100 pb-2">
-            <button onClick={() => setView('booking')} className={`flex-1 py-1 text-xs font-bold rounded-lg ${view==='booking'?'bg-[#dcb5bc] text-white':'text-stone-400'}`}>排程管理</button>
-            <button onClick={() => setView('clients')} className={`flex-1 py-1 text-xs font-bold rounded-lg ${view==='clients'?'bg-[#dcb5bc] text-white':'text-stone-400'}`}>客戶管理 (黑名單)</button>
-          </div>
-          {view === 'booking' ? (
-            <div className="flex flex-col gap-3">
-              <div className="text-xs text-center text-stone-400 mb-1">設定 {selectedDateKey} 的時段</div>
-              <div className="grid grid-cols-2 gap-3">
-                <button onClick={setTamsuiSchedule} className="bg-blue-50 text-blue-600 py-3 rounded-xl text-sm font-bold border border-blue-100 shadow-sm hover:bg-blue-100 transition flex flex-col items-center justify-center gap-1">
-                  <span>🌊 淡水自宅</span>
-                  <span className="text-[10px] font-normal opacity-70">09:30/13:00/15:30/19:00</span>
-                </button>
-                <button onClick={setZhubeiSchedule} className="bg-orange-50 text-orange-600 py-3 rounded-xl text-sm font-bold border border-orange-100 shadow-sm hover:bg-orange-100 transition flex flex-col items-center justify-center gap-1">
-                  <span>🎋 竹北自宅</span>
-                  <span className="text-[10px] font-normal opacity-70">顯示「需私訊協調」</span>
-                </button>
-              </div>
-              <div className="pt-2 border-t border-dashed border-stone-200">
-                 <div className="text-[10px] text-stone-400 mb-1">📅 休假/特殊排程</div>
-                 <div className="grid grid-cols-3 gap-2">
-                    <button onClick={() => setSpecialStatus('abroad')} className="bg-stone-100 text-stone-600 py-2 rounded-lg text-xs font-bold hover:bg-stone-200 flex items-center justify-center gap-1"><Icons.PlaneDoodle className="w-3.5 h-3.5"/> 出國</button>
-                    <button onClick={() => setSpecialStatus('rest')} className="bg-red-50 text-red-500 py-2 rounded-lg text-xs font-bold hover:bg-red-100">休息</button>
-                    <button onClick={() => setSpecialStatus('training')} className="bg-indigo-50 text-indigo-500 py-2 rounded-lg text-xs font-bold hover:bg-indigo-100 flex items-center justify-center gap-1"><Icons.PenDoodle className="w-3.5 h-3.5"/> 進修</button>
-                 </div>
-              </div>
-              <div className="pt-2 border-t border-dashed border-stone-200">
-                 <div className="text-[10px] text-stone-400 mb-1">手動新增個別時段 (特殊需求用)</div>
-                 <div className="flex gap-2">
-                    <select value={newLocation} onChange={(e) => setNewLocation(e.target.value)} className="w-1/3 bg-stone-50 border border-stone-200 rounded-lg text-xs p-1 outline-none">
-                      <option value="淡水自宅">淡水</option>
-                      <option value="竹北自宅">竹北</option>
-                    </select>
-                    <input type="time" value={newTime} onChange={(e) => setNewTime(e.target.value)} className="w-1/3 bg-stone-50 border border-stone-200 rounded-lg text-xs p-1 outline-none" />
-                    <button onClick={addSlot} className="flex-1 bg-stone-500 text-white rounded-lg text-xs font-bold"><Icons.Plus size={14} className="inline"/> 新增</button>
-                 </div>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <div className="flex gap-2">
-                <input type="tel" placeholder="輸入手機號碼查詢" value={phoneSearch} onChange={e=>setPhoneSearch(e.target.value)} className="flex-1 border border-stone-200 rounded-lg p-2 text-sm outline-none"/>
-                <button onClick={searchClient} className="bg-stone-500 text-white px-2 rounded-lg"><Icons.Search size={16}/></button>
-                <button onClick={openBlacklistAdd} className="bg-red-400 text-white px-2 rounded-lg" title="新增黑名單"><Icons.UserPlus size={16}/></button>
-                <button onClick={openBlacklistSettings} className="bg-stone-600 text-white px-2 rounded-lg" title="管理黑名單"><Icons.Settings size={16}/></button>
-              </div>
-              
-              {searchResult === 'not_found' && <div className="text-xs text-center text-stone-400">查無此客戶資料</div>}
-              {searchResult && searchResult !== 'not_found' && (
-                <div className="bg-stone-50 p-3 rounded-lg text-sm">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="font-bold text-lg">{searchResult.name}</span>
-                    <div className="flex gap-1">
-                        {/* [新增] 顯示儲值會員徽章 */}
-                        {searchResult.isStoreMember && <span className="bg-[#dcb5bc] text-white text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1"><Icons.Crown className="w-3 h-3"/> 儲值會員</span>}
-                        {searchResult.blacklist && <span className="bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full">黑名單</span>}
-                    </div>
-                  </div>
-                  <div className="text-stone-500 text-xs mb-2">
-                    來訪次數: {searchResult.visitCount || 0}
-                  </div>
-                  <textarea placeholder="備註 (例如: 預約未到...)" defaultValue={searchResult.notes || ''} onBlur={(e)=>saveNote(e.target.value)} className="w-full border border-stone-200 rounded p-1 text-xs mb-2 h-16"></textarea>
-                  
-                  <div className="flex gap-2 mt-2">
-                      <button onClick={toggleStoreMember} className={`flex-1 py-1 rounded text-xs font-bold border transition ${searchResult.isStoreMember ? 'bg-white border-[#dcb5bc] text-[#b07d88]' : 'bg-[#dcb5bc] text-white border-transparent'}`}>
-                        {searchResult.isStoreMember ? '取消儲值資格' : '👑 設定為儲值會員'}
-                      </button>
-                      <button onClick={toggleBlacklist} className={`flex-1 py-1 rounded text-xs font-bold border transition ${searchResult.blacklist ? 'bg-gray-200 text-stone-600 border-transparent' : 'bg-white border-red-500 text-red-500'}`}>
-                        {searchResult.blacklist ? '解除黑名單' : '加入黑名單'}
-                      </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-          <BlacklistManagerModal isOpen={showBlacklistManager} onClose={()=>setShowBlacklistManager(false)} initialTab={blacklistManagerTab} />
-        </div>
-      );
-    };
-
-    // --- 日曆組件 (包含管理者 "已預約列表" 的優化) ---
     const CalendarView = ({ isAdmin, user }) => {
       const [currentDate, setCurrentDate] = useState(new Date());
       const [selectedDate, setSelectedDate] = useState(new Date());
@@ -856,13 +384,11 @@
           });
           setAvailability(data);
           
-          // [優化] 自動過濾掉「今天以前」的預約 (只顯示今天及未來的待提醒項目)
           const now = new Date();
-          // 注意：為確保不漏掉今天的預約，將今天的時間設為 00:00:00 進行比對
           const todayStr = now.toISOString().split('T')[0];
           
           const filteredBooked = allBooked.filter(slot => {
-             return slot.date >= todayStr;
+             return slot.date && slot.time && slot.date >= todayStr;
           }).sort((a,b) => (a.date + a.time).localeCompare(b.date + b.time));
 
           setBookedList(filteredBooked);
@@ -891,13 +417,11 @@
         try { await db.collection(SCHEDULE_COLLECTION).doc(selectedDateKey).update({ slots: firebase.firestore.FieldValue.arrayRemove(slot) }); } catch (e) { console.error(e); }
       };
 
-      // [新增] 標記為已提醒 (toggleRemindStatus)
       const toggleRemindStatus = async (slot) => {
         try {
           const docRef = db.collection(SCHEDULE_COLLECTION).doc(slot.date);
           const docSnap = await docRef.get();
           if (docSnap.exists) {
-            // 切換 isReminded 狀態 (true <-> false)
             const updatedSlots = docSnap.data().slots.map(s => {
                 if (s.id === slot.id) {
                     return { ...s, isReminded: !s.isReminded };
@@ -917,7 +441,6 @@
            setSelectedSlot(slot);
            return; 
         }
-        // 竹北自宅/需協調時段 -> 跳轉 LINE
         if (slot.isVirtual || slot.type === 'zhubei_notice' || slot.time === '時段協調' || slot.location === '竹北自宅') {
            const textToCopy = `[期望預約時間:] ${slot.date || ''}\n[預約項目:] `;
            const textArea = document.createElement("textarea");
@@ -1167,6 +690,503 @@
       );
     };
 
+    const AdminPanel = ({ selectedDateKey, newTime, setNewTime, newLocation, setNewLocation, addSlot }) => {
+      const [view, setView] = useState('booking'); 
+      const [phoneSearch, setPhoneSearch] = useState('');
+      const [searchResult, setSearchResult] = useState(null);
+      const [showBlacklistManager, setShowBlacklistManager] = useState(false);
+      const [blacklistManagerTab, setBlacklistManagerTab] = useState('list');
+
+      const searchClient = async () => {
+        if(!phoneSearch) return;
+        try {
+          const docRef = db.collection(CLIENTS_COLLECTION).doc(phoneSearch);
+          const docSnap = await docRef.get();
+          if (docSnap.exists) setSearchResult(docSnap.data());
+          else setSearchResult('not_found');
+        } catch(e) { alert(e.message); }
+      };
+      
+      const toggleStoreMember = async () => {
+        if(!searchResult || searchResult === 'not_found') return;
+        try {
+          const newValue = !searchResult.isStoreMember;
+          await db.collection(CLIENTS_COLLECTION).doc(searchResult.phone).update({
+            isStoreMember: newValue
+          });
+          setSearchResult(prev => ({...prev, isStoreMember: newValue}));
+          alert(newValue ? "已設定為包堂會員" : "已取消包堂會員資格");
+        } catch(e) { alert(e.message); }
+      };
+
+      const toggleBlacklist = async () => {
+        if(!searchResult || searchResult === 'not_found') return;
+        try {
+          await db.collection(CLIENTS_COLLECTION).doc(searchResult.phone).update({
+            blacklist: !searchResult.blacklist
+          });
+          setSearchResult(prev => ({...prev, blacklist: !prev.blacklist}));
+        } catch(e) { alert(e.message); }
+      };
+
+      const saveNote = async (note) => {
+        try {
+          await db.collection(CLIENTS_COLLECTION).doc(searchResult.phone).update({ notes: note });
+          alert("備註已儲存");
+        } catch(e) { alert(e.message); }
+      };
+
+      const openBlacklistAdd = () => {
+        setBlacklistManagerTab('add');
+        setShowBlacklistManager(true);
+      };
+
+      const openBlacklistSettings = () => {
+        setBlacklistManagerTab('list');
+        setShowBlacklistManager(true);
+      };
+
+      const setTamsuiSchedule = async () => {
+        if (!confirm(`確定要設定 ${selectedDateKey} 為淡水班表嗎？(將覆蓋當日舊設定)`)) return;
+        const slots = ['09:30', '13:00', '15:30', '19:00'].map(time => ({
+          id: Date.now().toString() + time.replace(':', ''),
+          time,
+          location: '淡水自宅',
+          status: 'open'
+        }));
+        try {
+          await db.collection(SCHEDULE_COLLECTION).doc(selectedDateKey).set({ slots: slots });
+          alert("淡水班表已設定完成");
+        } catch (e) { alert(e.message); }
+      };
+
+      const setZhubeiSchedule = async () => {
+        if (!confirm(`確定要設定 ${selectedDateKey} 為竹北(需協調)嗎？(將覆蓋當日舊設定)`)) return;
+        const slots = [{
+          id: Date.now().toString(),
+          time: '時段協調',
+          location: '竹北自宅',
+          status: 'open',
+          type: 'zhubei_notice'
+        }];
+        try {
+          await db.collection(SCHEDULE_COLLECTION).doc(selectedDateKey).set({ slots: slots });
+          alert("竹北模式已設定");
+        } catch (e) { alert(e.message); }
+      };
+
+      const setSpecialStatus = async (type) => {
+        let label = '';
+        if (type === 'abroad') label = '出國';
+        if (type === 'rest') label = '休息';
+        if (type === 'training') label = '進修';
+
+        if (!confirm(`確定要將 ${selectedDateKey} 設定為【${label}】嗎？(將覆蓋當日舊設定)`)) return;
+
+        const slots = [{
+          id: Date.now().toString(),
+          time: '全日',
+          location: '',
+          status: 'closed', 
+          type: type 
+        }];
+
+        try {
+          await db.collection(SCHEDULE_COLLECTION).doc(selectedDateKey).set({ slots: slots });
+          alert(`已設定為 ${label}`);
+        } catch (e) { alert(e.message); }
+      };
+
+      return (
+        <div className="mb-6 bg-white p-3 rounded-xl border border-stone-200 shadow-sm">
+          <div className="flex gap-2 mb-4 border-b border-stone-100 pb-2">
+            <button onClick={() => setView('booking')} className={`flex-1 py-1 text-xs font-bold rounded-lg ${view==='booking'?'bg-[#dcb5bc] text-white':'text-stone-400'}`}>排程管理</button>
+            <button onClick={() => setView('clients')} className={`flex-1 py-1 text-xs font-bold rounded-lg ${view==='clients'?'bg-[#dcb5bc] text-white':'text-stone-400'}`}>客戶管理 (黑名單)</button>
+          </div>
+          {view === 'booking' ? (
+            <div className="flex flex-col gap-3">
+              <div className="text-xs text-center text-stone-400 mb-1">設定 {selectedDateKey} 的時段</div>
+              <div className="grid grid-cols-2 gap-3">
+                <button onClick={setTamsuiSchedule} className="bg-blue-50 text-blue-600 py-3 rounded-xl text-sm font-bold border border-blue-100 shadow-sm hover:bg-blue-100 transition flex flex-col items-center justify-center gap-1">
+                  <span>🌊 淡水自宅</span>
+                  <span className="text-[10px] font-normal opacity-70">09:30/13:00/15:30/19:00</span>
+                </button>
+                <button onClick={setZhubeiSchedule} className="bg-orange-50 text-orange-600 py-3 rounded-xl text-sm font-bold border border-orange-100 shadow-sm hover:bg-orange-100 transition flex flex-col items-center justify-center gap-1">
+                  <span>🎋 竹北自宅</span>
+                  <span className="text-[10px] font-normal opacity-70">顯示「需私訊協調」</span>
+                </button>
+              </div>
+              <div className="pt-2 border-t border-dashed border-stone-200">
+                 <div className="text-[10px] text-stone-400 mb-1">📅 休假/特殊排程</div>
+                 <div className="grid grid-cols-3 gap-2">
+                    <button onClick={() => setSpecialStatus('abroad')} className="bg-stone-100 text-stone-600 py-2 rounded-lg text-xs font-bold hover:bg-stone-200 flex items-center justify-center gap-1"><Icons.PlaneDoodle className="w-3.5 h-3.5"/> 出國</button>
+                    <button onClick={() => setSpecialStatus('rest')} className="bg-red-50 text-red-500 py-2 rounded-lg text-xs font-bold hover:bg-red-100">休息</button>
+                    <button onClick={() => setSpecialStatus('training')} className="bg-indigo-50 text-indigo-500 py-2 rounded-lg text-xs font-bold hover:bg-indigo-100 flex items-center justify-center gap-1"><Icons.PenDoodle className="w-3.5 h-3.5"/> 進修</button>
+                 </div>
+              </div>
+              <div className="pt-2 border-t border-dashed border-stone-200">
+                 <div className="text-[10px] text-stone-400 mb-1">手動新增個別時段 (特殊需求用)</div>
+                 <div className="flex gap-2">
+                    <select value={newLocation} onChange={(e) => setNewLocation(e.target.value)} className="w-1/3 bg-stone-50 border border-stone-200 rounded-lg text-xs p-1 outline-none">
+                      <option value="淡水自宅">淡水</option>
+                      <option value="竹北自宅">竹北</option>
+                    </select>
+                    <input type="time" value={newTime} onChange={(e) => setNewTime(e.target.value)} className="w-1/3 bg-stone-50 border border-stone-200 rounded-lg text-xs p-1 outline-none" />
+                    <button onClick={addSlot} className="flex-1 bg-stone-500 text-white rounded-lg text-xs font-bold"><Icons.Plus size={14} className="inline"/> 新增</button>
+                 </div>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex gap-2">
+                <input type="tel" placeholder="輸入手機號碼查詢" value={phoneSearch} onChange={e=>setPhoneSearch(e.target.value)} className="flex-1 border border-stone-200 rounded-lg p-2 text-sm outline-none"/>
+                <button onClick={searchClient} className="bg-stone-500 text-white px-2 rounded-lg"><Icons.Search size={16}/></button>
+                <button onClick={openBlacklistAdd} className="bg-red-400 text-white px-2 rounded-lg" title="新增黑名單"><Icons.UserPlus size={16}/></button>
+                <button onClick={openBlacklistSettings} className="bg-stone-600 text-white px-2 rounded-lg" title="管理黑名單"><Icons.Settings size={16}/></button>
+              </div>
+              
+              {searchResult === 'not_found' && <div className="text-xs text-center text-stone-400">查無此客戶資料</div>}
+              {searchResult && searchResult !== 'not_found' && (
+                <div className="bg-stone-50 p-3 rounded-lg text-sm">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="font-bold text-lg">{searchResult.name}</span>
+                    <div className="flex gap-1">
+                        {searchResult.isStoreMember && <span className="bg-[#dcb5bc] text-white text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1"><Icons.Crown className="w-3 h-3"/> 包堂會員</span>}
+                        {searchResult.blacklist && <span className="bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full">黑名單</span>}
+                    </div>
+                  </div>
+                  <div className="text-stone-500 text-xs mb-2">
+                    來訪次數: {searchResult.visitCount || 0}
+                  </div>
+                  <textarea placeholder="備註 (例如: 預約未到...)" defaultValue={searchResult.notes || ''} onBlur={(e)=>saveNote(e.target.value)} className="w-full border border-stone-200 rounded p-1 text-xs mb-2 h-16"></textarea>
+                  
+                  <div className="flex gap-2 mt-2">
+                      <button onClick={toggleStoreMember} className={`flex-1 py-1 rounded text-xs font-bold border transition ${searchResult.isStoreMember ? 'bg-white border-[#dcb5bc] text-[#b07d88]' : 'bg-[#dcb5bc] text-white border-transparent'}`}>
+                        {searchResult.isStoreMember ? '取消包堂資格' : '👑 設定為包堂會員'}
+                      </button>
+                      <button onClick={toggleBlacklist} className={`flex-1 py-1 rounded text-xs font-bold border transition ${searchResult.blacklist ? 'bg-gray-200 text-stone-600 border-transparent' : 'bg-white border-red-500 text-red-500'}`}>
+                        {searchResult.blacklist ? '解除黑名單' : '加入黑名單'}
+                      </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          <BlacklistManagerModal isOpen={showBlacklistManager} onClose={()=>setShowBlacklistManager(false)} initialTab={blacklistManagerTab} />
+        </div>
+      );
+    };
+
+    const BookingModal = ({ isOpen, onClose, slot, dateKey }) => {
+      const [step, setStep] = useState(1);
+      const [clientPhone, setClientPhone] = useState('');
+      const [clientData, setClientData] = useState(null); 
+      const [loading, setLoading] = useState(false);
+      const [clientName, setClientName] = useState('');
+      
+      const [services, setServices] = useState({
+        upper: false, upperTint: false,
+        lower: false, lowerTint: false, brow: false
+      });
+
+      useEffect(() => {
+        if(isOpen) {
+          setStep(1); setClientPhone(''); setClientData(null);
+          setClientName(''); 
+          setServices({ upper: false, upperTint: false, lower: false, lowerTint: false, brow: false });
+        }
+      }, [isOpen]);
+
+      if (!isOpen) return null;
+
+      const checkClient = async () => {
+        if(clientPhone.length !== 10) return alert("請確認電話號碼是否有誤~");
+        setLoading(true);
+        try {
+          const docRef = db.collection(CLIENTS_COLLECTION).doc(clientPhone);
+          const docSnap = await docRef.get();
+          if (docSnap.exists) {
+            const data = docSnap.data();
+            if (data.blacklist) {
+              alert("您有預約未到的紀錄, 請直接利用官方Line與店家聯繫~");
+              window.location.href = "https://lin.ee/49zZehk";
+              onClose();
+              return;
+            }
+            setClientData({ ...data, status: 'old' });
+            setClientName(data.name || '');
+          } else {
+            setClientData({ status: 'new' });
+          }
+          setStep(2);
+        } catch (e) { console.error(e); alert("系統錯誤"); }
+        setLoading(false);
+      };
+
+      const isNewClient = clientData?.status === 'new';
+      const PRICES = { upper: isNewClient ? 699 : 999, brow: isNewClient ? 699 : 999, lower_single: 500, lower_combo: 300, tint_upper: 200, tint_lower: 100 };
+      
+      let total = 0;
+      if (services.upper) total += PRICES.upper;
+      if (services.lower) total += (services.upper ? PRICES.lower_combo : PRICES.lower_single);
+      if (services.brow) total += PRICES.brow;
+      
+      let comboDiscount = 0;
+      if ((services.upper || services.lower) && services.brow) { comboDiscount = 100; total -= comboDiscount; }
+
+      if (services.upperTint && services.upper) total += PRICES.tint_upper;
+      if (services.lowerTint && services.lower) total += PRICES.tint_lower;
+      
+      let tintDiscount = 0;
+      if (services.upperTint && services.lowerTint && services.upper && services.lower) { tintDiscount = 50; total -= tintDiscount; }
+
+      // [包堂會員] 試算邏輯
+      let packagePayable = 0; // 現場需付
+      let deductionText = []; // 扣除項目描述
+
+      if (clientData?.isStoreMember) {
+          // 1. 上睫毛 -> 扣除堂數 (含濃黑)
+          if (services.upper) {
+             deductionText.push("1 堂睫毛管理");
+          }
+          
+          // 2. 下睫毛 -> 會員加購價 $300 (含濃黑)
+          if (services.lower) {
+             packagePayable += 300; 
+          }
+
+          // 3. 野生眉 -> 維持會員價 (假設 $850)
+          if (services.brow) {
+             packagePayable += 850;
+          }
+      }
+
+      const handleConfirm = async () => {
+        if (!clientName) return alert("請填寫姓名以便聯繫");
+
+        const items = [];
+        if (services.upper) items.push(`上睫毛管理 ($${PRICES.upper})`);
+        if (services.upperTint) items.push(`  + 濃黑養護 ($${PRICES.tint_upper})`);
+        if (services.lower) items.push(`下睫毛管理 ($${services.upper ? PRICES.lower_combo : PRICES.lower_single})`);
+        if (services.lowerTint) items.push(`  + 濃黑養護 ($${PRICES.tint_lower})`);
+        if (services.brow) items.push(`野生眉雕塑 ($${PRICES.brow})`);
+        
+        if ((services.upper || services.lower) && services.brow) items.push(`(眉睫合購折抵 -$100)`);
+        if (services.upper && services.lower) items.push(`(上下睫毛合購折抵 -$200)`);
+        if (tintDiscount > 0) items.push(`(濃黑養護合購優惠 -$50)`);
+
+        if (!isNewClient) items.push(`(歡迎回娘家♡)`);
+        if (clientData?.isStoreMember) items.push(`(👑 包堂會員預約)`);
+
+        let extraInfo = '';
+        if (slot.location.includes('新竹')) extraInfo = '\n地址：(請填寫詳細地址，到府費$100-150視距離報價)';
+
+        const text = `Hi Bianca, 我想預約：\n日期：${dateKey}\n時間：${slot.time}\n地點：${slot.location}${extraInfo}\n\n預約項目：\n${items.join('\n')}\n\n預估金額：$${total}\n${clientData?.isStoreMember ? `(我是包堂會員，本次預計扣除：${deductionText.join(' + ') || '無'}，現場付：$${packagePayable})` : ''}\n\n姓名：${clientName}\n電話：${clientPhone}\n\n*備註：當天若帶妝，需加收$100卸妝費*`;
+
+        let copySuccess = false;
+        try {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed"; 
+            textArea.style.left = "-9999px";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            copySuccess = document.execCommand('copy');
+            document.body.removeChild(textArea);
+        } catch (e) {
+            console.error("Copy failed", e);
+        }
+
+        try {
+          await db.runTransaction(async (transaction) => {
+            const scheduleRef = db.collection(SCHEDULE_COLLECTION).doc(dateKey);
+            const scheduleDoc = await transaction.get(scheduleRef);
+            
+            if (!scheduleDoc.exists) throw new Error("行程表資料不存在");
+
+            const slots = scheduleDoc.data().slots || [];
+            
+            const duplicateBooking = slots.find(s => 
+              s.status === 'booked' && 
+              s.clientName === clientName && 
+              s.clientPhone === clientPhone
+            );
+
+            if (duplicateBooking) {
+                throw new Error("DUPLICATE_BOOKING");
+            }
+
+            const targetSlotIndex = slots.findIndex(s => s.id === slot.id);
+            if (targetSlotIndex === -1) throw new Error("找不到該時段");
+            if (slots[targetSlotIndex].status !== 'open') throw new Error("抱歉！該時段剛剛被其他人搶先預約了 😭");
+
+            slots[targetSlotIndex].status = 'booked';
+            slots[targetSlotIndex].clientName = clientName;
+            slots[targetSlotIndex].clientPhone = clientPhone;
+            slots[targetSlotIndex].services = items.join(', ');
+
+            transaction.update(scheduleRef, { slots: slots });
+
+            const clientRef = db.collection(CLIENTS_COLLECTION).doc(clientPhone);
+            transaction.set(clientRef, {
+              phone: clientPhone,
+              name: clientName,
+              lastVisit: dateKey,
+              visitCount: (clientData?.visitCount || 0) + 1,
+              blacklist: false
+            }, { merge: true });
+          });
+
+          if (copySuccess) {
+              alert("已自動複製預約格式！\n請跳轉至 LINE 後「貼上」並填寫傳送。\n\n⚠️ 闆娘小提醒：\n會盡可能安排時間，但如果真的喬不到可以配合的時間，很抱歉...也謝謝妳願意給我機會，希望未來還是能夠服務到妳❤️");
+          } else {
+              alert("預約成功！時段已為您保留。\n(自動複製失敗) 請手動複製以下內容傳送給 LINE 客服：\n\n" + text);
+          }
+
+          window.location.href = "https://lin.ee/49zZehk";
+          setTimeout(() => { onClose(); }, 500);
+
+        } catch (e) {
+          if (e.message === "DUPLICATE_BOOKING") {
+              alert("您已預約不同時段, 請直接使用Line向Bianca官方聯繫");
+              onClose();
+              return;
+          }
+          alert("預約失敗：" + e.message);
+          if (e.message.includes("搶先")) { onClose(); }
+        }
+      };
+
+      return (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 modal-overlay" onClick={onClose}>
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl border-2 border-stone-200 slide-up" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-bold text-stone-700 text-lg">
+                {step === 1 ? '會員驗證' : (isNewClient ? '✨ 新客體驗預約' : '❤️ VIP 回訪預約')}
+              </h3>
+              <button onClick={onClose}><Icons.X className="text-stone-400" /></button>
+            </div>
+            
+            {step === 1 ? (
+              <div className="space-y-4">
+                <p className="text-sm text-stone-500">請輸入手機號碼，系統將自動查詢是否享有新客體驗價。</p>
+                <input 
+                  type="tel" 
+                  value={clientPhone}
+                  onChange={e => setClientPhone(e.target.value)}
+                  placeholder="09xxxxxxxx"
+                  className="w-full border-2 border-stone-200 rounded-xl p-3 text-lg outline-none focus:border-[#dcb5bc]"
+                />
+                <button 
+                  onClick={checkClient} 
+                  disabled={loading}
+                  className="w-full bg-[#dcb5bc] text-white py-3 rounded-xl font-bold shadow-md hover:opacity-90 transition disabled:opacity-50"
+                >
+                  {loading ? '查詢中...' : '下一步'}
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3 mb-6 max-h-[60vh] overflow-y-auto no-scrollbar">
+                
+                <div className="mb-2">
+                  <input type="text" placeholder="請輸入您的姓名" value={clientName} onChange={e=>setClientName(e.target.value)} className="w-full border-2 border-stone-200 rounded-lg p-2 text-sm outline-none focus:border-[#dcb5bc]" />
+                </div>
+
+                <div className="border border-stone-200 rounded-xl p-3">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input type="checkbox" checked={services.upper} onChange={() => setServices(p => ({...p, upper: !p.upper, upperTint: !p.upper ? false : p.upperTint}))} className="w-5 h-5 accent-[#dcb5bc]" />
+                    <span className="font-bold text-stone-600">上睫毛管理 <span className="text-[#b07d88]">${PRICES.upper}</span></span>
+                  </label>
+                  {services.upper && (
+                    <div className="ml-8 mt-2 pt-2 border-t border-dashed border-stone-100">
+                      <label className="flex items-center gap-2 cursor-pointer text-sm text-stone-500">
+                        <input type="checkbox" checked={services.upperTint} onChange={() => setServices(p => ({...p, upperTint: !p.upperTint}))} className="accent-[#dcb5bc]" />
+                        + 加購濃黑養護 ($200)
+                      </label>
+                    </div>
+                  )}
+                </div>
+
+                <div className="border border-stone-200 rounded-xl p-3">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input type="checkbox" checked={services.lower} onChange={() => setServices(p => ({...p, lower: !p.lower, lowerTint: !p.lower ? false : p.lowerTint}))} className="w-5 h-5 accent-[#dcb5bc]" />
+                    <div className="flex flex-col">
+                      <span className="font-bold text-stone-600">下睫毛管理</span>
+                      <span className="text-xs text-stone-400">單作$500 / 搭配上睫毛優惠 <span className="text-[#b07d88] font-bold">$300</span></span>
+                    </div>
+                  </label>
+                  {services.lower && (
+                    <div className="ml-8 mt-2 pt-2 border-t border-dashed border-stone-100">
+                      <label className="flex items-center gap-2 cursor-pointer text-sm text-stone-500">
+                        <input type="checkbox" checked={services.lowerTint} onChange={() => setServices(p => ({...p, lowerTint: !p.lowerTint}))} className="accent-[#dcb5bc]" />
+                        + 加購濃黑養護 ($100)
+                      </label>
+                    </div>
+                  )}
+                </div>
+
+                <div className="border border-stone-200 rounded-xl p-3">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input type="checkbox" checked={services.brow} onChange={() => setServices(p => ({...p, brow: !p.brow}))} className="w-5 h-5 accent-[#dcb5bc]" />
+                    <div className="flex flex-col">
+                      <span className="font-bold text-stone-600">野生眉雕塑 <span className="text-[#b07d88]">${PRICES.brow}</span></span>
+                      {(services.upper || services.lower) && <span className="text-xs text-[#b07d88] font-bold">✨ 與任一睫毛管理合購再折 $100</span>}
+                    </div>
+                  </label>
+                </div>
+
+                <div className="text-xs text-red-400 bg-red-50 p-2 rounded-lg text-center">
+                  ⚠️ 提醒：當天若帶妝到，需加收 $100 卸妝費
+                </div>
+                
+                <div className="bg-yellow-100 border-l-4 border-yellow-400 text-yellow-800 p-3 text-xs rounded shadow-sm relative">
+                   <div className="font-bold mb-1 flex items-center gap-1"><Icons.Sparkles className="w-3 h-3"/> 預約小提醒</div>
+                   <p>預約時間選擇後，將自動複製預約資訊，請跳轉至LINE後，<span className="font-bold underline text-red-500 bg-yellow-200 px-1 rounded">[貼上]</span>預約資訊並確認後，發送給闆娘做核對確認哦!</p>
+                </div>
+
+                <div className="bg-[#fae8eb] p-4 rounded-xl flex flex-col gap-1">
+                  <div className="flex justify-between items-center">
+                    <span className="text-stone-600 font-bold text-sm">預估金額</span>
+                    <span className="text-[#b07d88] font-bold text-xl">${total}</span>
+                  </div>
+                  
+                  {/* 包堂會員試算顯示 */}
+                  {clientData?.isStoreMember && (
+                    <div className="text-right border-t border-dashed border-[#dcb5bc]/30 pt-1 mt-1">
+                      <div className="flex flex-col items-end">
+                          <span className="text-xs text-stone-500 font-bold mb-1">👑 包堂會員試算</span>
+                          {deductionText.length > 0 && (
+                              <span className="text-xs text-[#b07d88] bg-white px-1 rounded border border-[#dcb5bc] mb-1">
+                                  本次扣除：{deductionText.join(' + ')}
+                              </span>
+                          )}
+                          <span className="text-sm font-bold text-[#b07d88]">
+                              現場需付：${packagePayable}
+                          </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {!clientData?.isStoreMember && (
+                     <>
+                        {comboDiscount > 0 && <span className="text-xs text-[#b07d88] text-right">已扣除睫毛管理與野生眉合購優惠 -$100</span>}
+                        {(services.upper && services.lower) && <span className="text-xs text-[#b07d88] text-right">已扣除上/ 下睫毛管理合購優惠 -$200</span>}
+                        {tintDiscount > 0 && <span className="text-xs text-[#b07d88] text-right">已扣除濃黑養護合購優惠 -$50</span>}
+                     </>
+                  )}
+                </div>
+
+                <button onClick={handleConfirm} disabled={total === 0} className="w-full bg-[#dcb5bc] text-white py-3 rounded-xl font-bold shadow-md hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed">
+                  確認預約，前往 LINE
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    };
+
     // [新增] 價目表卡片
     const PriceCard = ({ title, generalPrice, memberPrice, note, isCombo }) => (
       <div className={`border-2 border-stone-200 bg-white rounded-xl p-4 shadow-sm mb-3 ${isCombo ? 'border-[#dcb5bc]/50 bg-[#fff5f7]' : ''}`}>
@@ -1182,7 +1202,7 @@
         
         <div className="mt-4 flex items-center justify-between border-t border-dashed border-stone-100 pt-3">
            <div className="text-left">
-             <div className="text-xs text-stone-400 mb-0.5">一般 / 體驗價</div>
+             <div className="text-xs text-stone-400 mb-0.5">單次消費 / 體驗價</div>
              <div className="font-medium text-stone-600">{generalPrice}</div>
            </div>
            <div className="text-right">
@@ -1193,100 +1213,152 @@
       </div>
     );
 
-    // [新增] 儲值方案卡片
-    const StoredValueCard = ({ title, price, gift, target, colorClass }) => (
-      <div className={`border-2 rounded-xl p-4 mb-3 relative overflow-hidden bg-white ${colorClass}`}>
-        <div className="relative z-10">
-          <div className="flex justify-between items-center mb-2">
+    // [新增] 包堂方案卡片
+    const PackageCard = ({ title, price, content, sub }) => (
+      <div className={`border-2 border-[#dcb5bc] bg-white rounded-xl p-4 mb-3 relative overflow-hidden`}>
+        <div className="absolute top-0 right-0 bg-[#dcb5bc] text-white text-[10px] px-2 py-0.5 rounded-bl-lg font-bold">HOT</div>
+        <div className="flex justify-between items-baseline mb-1">
             <h4 className="font-bold text-stone-700 text-lg">{title}</h4>
             <span className="font-bold text-xl text-[#b07d88]">{price}</span>
-          </div>
-          <div className="bg-[#fff5f5] rounded-lg p-2 mb-2">
-            <span className="text-xs font-bold text-red-400 border border-red-200 px-1 rounded mr-2 bg-white">贈送</span>
-            <span className="text-sm text-stone-600 font-medium">{gift}</span>
-          </div>
-          <p className="text-xs text-stone-400"><span className="font-bold">推薦：</span>{target}</p>
         </div>
+        <div className="text-sm text-stone-600 font-medium mb-1">{content}</div>
+        {sub && <div className="text-xs text-stone-400">{sub}</div>}
       </div>
     );
 
-    // [新增] 分頁內容：價目表
+    // [修改] 分頁內容：價目表 (完全重製為包堂版本)
     const PriceView = () => (
       <div className="space-y-2 tab-content">
         <div className="text-center mb-4">
            <h2 className="text-xl font-bold text-stone-600 mb-1">Service Menu</h2>
-           <p className="text-xs text-stone-400">儲值會員享專屬優惠</p>
         </div>
         
-        <PriceCard 
-          title="上睫毛管理" 
-          generalPrice={<span>$999 <span className="text-xs text-stone-400">(首次 $699)</span></span>}
-          memberPrice="$850"
-          note="含睫毛泡泡洗 + 滋養修護"
-        />
-        <PriceCard 
-          title="下睫毛管理" 
-          generalPrice="$500"
-          memberPrice={<span>$400 <span className="text-[10px] opacity-70 block">(加購價$250)</span></span>}
-        />
-        <PriceCard 
-          title="野生眉雕塑" 
-          generalPrice={<span>$999 <span className="text-xs text-stone-400">(首次 $699)</span></span>}
-          memberPrice="$850"
-        />
-        <PriceCard 
-          title="耀眼組合 (眉+睫)" 
-          generalPrice={<span>原價折 <span className="text-red-400 font-bold">$100</span></span>}
-          memberPrice="$1600"
-          isCombo={true}
-          note="上睫毛管理 + 野生眉雕塑"
-        />
-
-        <div className="mt-6 bg-stone-100 rounded-xl p-4 text-xs text-stone-500">
-          <h5 className="font-bold mb-2 flex items-center gap-2"><Icons.Star className="w-3 h-3 text-yellow-400 fill-yellow-400"/> 加購項目</h5>
-          <div className="flex justify-between mb-1"><span>濃黑養護 (上/下)</span> <span>+$200 / $100</span></div>
-          <div className="flex justify-between"><span>卸妝費 (若帶妝)</span> <span className="text-red-400">+$100</span></div>
+        <div className="mb-6">
+            <div className="flex items-center gap-2 mb-2 px-1"><Icons.Heart className="w-4 h-4 text-[#b07d88] fill-[#b07d88]"/> <span className="font-bold text-stone-700">原生翹睫</span></div>
+            {/* 單次消費列表 */}
+            <div className="bg-white rounded-xl border border-stone-200 p-4 space-y-3 shadow-sm relative overflow-hidden">
+                <div className="flex justify-between items-center border-b border-dashed border-stone-100 pb-2">
+                    <div><div className="font-bold text-stone-600">上睫毛管理</div></div>
+                    <div className="text-right">
+                        <div className="font-bold text-[#b07d88]">$999</div>
+                        <div className="text-[10px] text-stone-400">首次體驗 $699</div>
+                    </div>
+                </div>
+                <div className="flex justify-between items-center border-b border-dashed border-stone-100 pb-2">
+                    <div><div className="font-bold text-stone-600">下睫毛管理</div></div>
+                    <div className="text-right">
+                        <div className="font-bold text-[#b07d88]">$500</div>
+                        <div className="text-[10px] text-stone-400">搭配上睫毛加購 $300</div>
+                    </div>
+                </div>
+                <div className="bg-[#fdfbf7] p-2 rounded-lg text-xs text-stone-500 mt-2">
+                    <span className="font-bold text-[#b07d88]">*升級濃黑養護：</span><br/>
+                    上睫毛+$200 / 下睫毛+$100<br/>
+                    <span className="text-[#b07d88] font-bold">(上下合購 +$250)</span>
+                </div>
+            </div>
         </div>
 
-        {/* 儲值方案區塊 */}
-        <div className="mt-8 mb-4 relative">
-            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-stone-300 border-dashed"></div></div>
-            <div className="relative flex justify-center text-sm"><span className="px-2 bg-[#fdfbf7] text-stone-500 font-bold">💎 儲值優惠方案</span></div>
+        <div className="mb-4">
+            <div className="flex items-center gap-2 mb-2 px-1">
+                <Icons.Star className="w-4 h-4 text-yellow-400 fill-yellow-400"/>
+                <span className="font-bold text-stone-700">野生眉雕塑</span>
+            </div>
+            <div className="bg-white rounded-xl border border-stone-200 p-4 space-y-3 shadow-sm">
+                <div className="flex justify-between items-center">
+                    <div>
+                         <div className="font-bold text-stone-600">野生眉雕塑</div>
+                         {/* [修改] 顯示包堂加購優惠 */}
+                         <div className="text-[10px] text-[#b07d88] font-bold mt-1">✨ 包堂會員加購優惠 $850</div>
+                    </div>
+                    <div className="text-right">
+                        <div className="font-bold text-[#b07d88]">$999</div>
+                        <div className="text-[10px] text-stone-400">首次體驗 $699</div>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <StoredValueCard 
-          title="小資體驗組"
-          price="$3,000"
-          gift="贈送 $200 儲值金"
-          target="剛過體驗期、想穩定保養的客戶"
-          colorClass="border-stone-200"
-        />
-        <StoredValueCard 
-          title="經典亮眼組"
+        <div className="bg-[#fff5f7] border border-[#dcb5bc] rounded-xl p-4 mb-6 shadow-sm flex justify-between items-center">
+             <div>
+                <div className="font-bold text-stone-700 flex items-center gap-1"><Icons.Sparkles className="w-3 h-3 text-yellow-400"/> 耀眼組合</div>
+                <div className="text-xs text-stone-500">睫毛管理 + 野生眉雕塑</div>
+             </div>
+             <div className="font-bold text-xl text-[#b07d88]">現折 $100</div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 mb-8">
+            <div className="bg-white border-2 border-dashed border-stone-200 rounded-xl p-3 text-center">
+                <div className="text-xs text-stone-400 mb-1">🏠 回娘家</div>
+                <div className="font-bold text-stone-600 text-sm">8周內回訪</div>
+                <div className="text-[#b07d88] font-bold text-lg mt-1">現折 $100</div>
+            </div>
+            <div className="bg-white border-2 border-dashed border-stone-200 rounded-xl p-3 text-center">
+                <div className="text-xs text-stone-400 mb-1">🎁 大方分享</div>
+                <div className="font-bold text-stone-600 text-[10px] leading-tight">IG/Threads/FB<br/>分享+標註</div>
+                <div className="text-[#b07d88] font-bold text-lg mt-1">現折 $50</div>
+            </div>
+        </div>
+
+        <div className="mb-4 relative">
+            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-[#dcb5bc] border-dashed"></div></div>
+            <div className="relative flex justify-center text-sm"><span className="px-3 bg-[#fdfbf7] text-[#b07d88] font-bold flex items-center gap-1"><Icons.Crown className="w-4 h-4"/> 睫毛管理包堂優惠</span></div>
+        </div>
+
+        {/* [修改] 補充野生眉加購資訊 */}
+        <PackageCard 
+          title="輕盈包堂組"
           price="$5,000"
-          gift="贈送 $500 儲值金 + 睫毛雨衣一支"
-          target="睫毛眉毛同時管理、熟客"
-          colorClass="border-[#dcb5bc]"
+          content="5 堂睫毛管理"
+          sub="含上睫毛濃黑養護，下睫毛加購 $300、野生眉加購 $850"
         />
-        <StoredValueCard 
-          title="極致寵愛組"
+        <PackageCard 
+          title="完美囤貨組"
           price="$10,000"
-          gift="贈送 $1,500 儲值金 + 睫毛滋養液一支"
-          target="核心鐵粉，預繳一年份費用"
-          colorClass="border-yellow-400/50 bg-yellow-50/30"
+          content="10 堂 + 送 1 堂"
+          sub="含上睫毛濃黑養護，下睫毛加購 $300、野生眉加購 $850"
         />
+        
+        {/* 包堂VIP專屬禮遇 (含回訪、積點) */}
+        <div className="mt-6 border-2 border-yellow-300 bg-[#fffdf5] rounded-xl p-4 relative overflow-hidden mb-4">
+          <div className="absolute -top-3 -left-3"><Icons.Crown className="w-8 h-8 text-yellow-400 fill-yellow-100" /></div>
+          <h3 className="text-center font-bold text-stone-600 text-lg mb-3">👑 包堂 VIP 專屬禮遇</h3>
+
+          <div className="bg-white rounded-lg p-3 border border-stone-100 mb-3 shadow-sm">
+             <h4 className="font-bold text-[#b07d88] flex items-center gap-2 mb-1">
+                <Icons.Clock className="w-4 h-4"/> VIP 回訪禮
+             </h4>
+             <p className="text-xs text-stone-600 mb-1 font-bold">6週內回訪，當天可選擇以下其一 (免費 1 次)：</p>
+             <ul className="text-xs text-stone-500 list-disc list-inside pl-1">
+                <li>深層睫毛泡泡 SPA 🛁</li>
+                <li>下睫毛管理 ✨</li>
+             </ul>
+          </div>
+
+          <div className="bg-white rounded-lg p-3 border border-stone-100 shadow-sm">
+             <h4 className="font-bold text-[#b07d88] flex items-center gap-2 mb-1">
+                <Icons.Star className="w-4 h-4 text-yellow-400 fill-yellow-400"/> VIP 分享積點 (1點=$50)
+             </h4>
+             <ul className="text-xs text-stone-600 list-disc list-inside">
+                <li>社群分享 + 標註 = <span className="font-bold text-red-400">送 1 點</span></li>
+                <li>點數可折抵：療程加購、保養產品</li>
+             </ul>
+          </div>
+        </div>
 
         <div className="mt-3 bg-[#fff0f3] border border-[#dcb5bc] rounded-xl p-3 text-xs text-stone-600 flex items-start gap-2">
             <Icons.Heart className="w-4 h-4 text-[#b07d88] shrink-0 mt-0.5" fill="#b07d88" />
             <div>
-               <span className="font-bold text-[#b07d88]">儲值金方案備註：</span>
-               可以與家人朋友共享儲值金！請於當天結帳時做告知。
+               <span className="font-bold text-[#b07d88]">貼心備註：</span>
+               可以與家人朋友共享包堂堂數! 請於預約時做告知~
             </div>
         </div>
       </div>
     );
 
-    // [新增] 分頁內容：Q&A
+    // [QAView, NoticeView, App etc. remain same as previous full version, ensuring PriceView is replaced]
+    // ... (Repeating other components to ensure full file copy-paste works) ...
+
     const QAView = () => (
       <div className="space-y-3 tab-content">
         <div className="text-center mb-4"><h2 className="text-xl font-bold text-stone-600">Q & A</h2></div>
@@ -1326,7 +1398,6 @@
       </div>
     );
 
-    // [新增] 分頁內容：預約須知
     const NoticeView = () => (
       <div className="tab-content">
         <div className="text-center mb-4"><h2 className="text-xl font-bold text-stone-600">Notice</h2></div>
